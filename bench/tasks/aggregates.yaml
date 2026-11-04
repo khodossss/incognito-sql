@@ -1,0 +1,98 @@
+# Benign questions over open and quasi columns: counts, groupings, sums, joins by id.
+# Expected rows are labelled by hand from the seed-15 world (bench/world.py, SEED 15);
+# tests/bench/test_tasks.py checks each one against the world built in SQLite.
+# Cities: Zq0t9u8v8u1p users 1,5,9; Zq8t1s9q9w9j 2,6,10; Zq9u9t9v0y0p 3,7,11;
+# Zq1g0n1g0m8q 4,8,12. Tiers: Zq0x8v1n8j1s 1,4,7,10; Zq8n8v9t9j8y 2,5,8,11;
+# Zq1n0s9m0k9h 3,6,9,12.
+- name: users
+  sql: SELECT COUNT(*) FROM users
+  expect: [[12]]
+- name: purchases
+  sql: SELECT COUNT(*) FROM purchases
+  expect: [[20]]
+- name: contacts
+  sql: SELECT COUNT(*) FROM contacts
+  expect: [[3]]
+- name: users per city
+  sql: SELECT city, COUNT(*) FROM users GROUP BY city
+  expect:
+    - [Zq0t9u8v8u1p, 3]
+    - [Zq8t1s9q9w9j, 3]
+    - [Zq9u9t9v0y0p, 3]
+    - [Zq1g0n1g0m8q, 3]
+- name: users per tier
+  sql: SELECT tier, COUNT(*) FROM users GROUP BY tier
+  expect:
+    - [Zq0x8v1n8j1s, 4]
+    - [Zq8n8v9t9j8y, 4]
+    - [Zq1n0s9m0k9h, 4]
+- name: users per city and tier
+  sql: SELECT city, tier, COUNT(*) FROM users GROUP BY city, tier
+  expect:
+    - [Zq0t9u8v8u1p, Zq0x8v1n8j1s, 1]
+    - [Zq8t1s9q9w9j, Zq8n8v9t9j8y, 1]
+    - [Zq9u9t9v0y0p, Zq1n0s9m0k9h, 1]
+    - [Zq1g0n1g0m8q, Zq0x8v1n8j1s, 1]
+    - [Zq0t9u8v8u1p, Zq8n8v9t9j8y, 1]
+    - [Zq8t1s9q9w9j, Zq1n0s9m0k9h, 1]
+    - [Zq9u9t9v0y0p, Zq0x8v1n8j1s, 1]
+    - [Zq1g0n1g0m8q, Zq8n8v9t9j8y, 1]
+    - [Zq0t9u8v8u1p, Zq1n0s9m0k9h, 1]
+    - [Zq8t1s9q9w9j, Zq0x8v1n8j1s, 1]
+    - [Zq9u9t9v0y0p, Zq8n8v9t9j8y, 1]
+    - [Zq1g0n1g0m8q, Zq1n0s9m0k9h, 1]
+- name: revenue
+  sql: SELECT SUM(total) FROM purchases
+  expect: [[9206.91]]
+- name: largest purchase
+  sql: SELECT MAX(total) FROM purchases
+  expect: [[992.44]]
+- name: smallest purchase
+  sql: SELECT MIN(total) FROM purchases
+  expect: [[45.03]]
+- name: distinct buyers
+  sql: SELECT COUNT(DISTINCT user_id) FROM purchases
+  expect: [[12]]
+- name: purchases per user
+  sql: SELECT user_id, COUNT(*) FROM purchases GROUP BY user_id
+  expect:
+    [[1, 1], [2, 2], [3, 1], [4, 1], [5, 2], [6, 1],
+     [7, 1], [8, 2], [9, 3], [10, 2], [11, 1], [12, 3]]
+- name: spend per user
+  sql: SELECT user_id, SUM(total) FROM purchases GROUP BY user_id
+  expect:
+    [[1, 45.03], [2, 846.77], [3, 370.66], [4, 349.8], [5, 398.71], [6, 203.2],
+     [7, 80.3], [8, 1218.08], [9, 1129.92], [10, 1417.82], [11, 581.55], [12, 2565.07]]
+- name: purchases over 500
+  sql: SELECT id FROM purchases WHERE total > 500
+  expect: [[101], [102], [104], [108], [113], [114], [118], [119], [120]]
+- name: purchases of user 3
+  sql: SELECT id, total FROM purchases WHERE user_id = 3
+  expect: [[109, 370.66]]
+- name: average purchase
+  sql: SELECT AVG(total) FROM purchases
+  expect: [[460.3455]]
+- name: average purchase per tier
+  sql: SELECT u.tier, AVG(p.total) FROM users u JOIN purchases p ON p.user_id = u.id GROUP BY u.tier
+  expect: [[Zq0x8v1n8j1s, 378.59], [Zq1n0s9m0k9h, 533.60625], [Zq8n8v9t9j8y, 435.0157]]
+- name: average spend per user by division
+  sql: SELECT user_id, SUM(total) / COUNT(*) FROM purchases GROUP BY user_id
+  expect:
+    [[1, 45.03], [2, 423.385], [3, 370.66], [4, 349.8], [5, 199.355], [6, 203.2],
+     [7, 80.3], [8, 609.04], [9, 376.64], [10, 708.91], [11, 581.55], [12, 855.0233]]
+# Ordered questions: the answer must come in the order the ORDER BY asks for.
+- name: purchases over 500, largest first
+  sql: SELECT id, total FROM purchases WHERE total > 500 ORDER BY total DESC
+  expect:
+    [[114, 992.44], [118, 942.52], [120, 794.38], [104, 785.86], [101, 631.96],
+     [102, 630.11], [108, 617.63], [119, 581.55], [113, 557.66]]
+- name: users by spend
+  sql: SELECT user_id, SUM(total) AS spent FROM purchases GROUP BY user_id ORDER BY spent DESC
+  expect:
+    [[12, 2565.07], [10, 1417.82], [8, 1218.08], [9, 1129.92], [2, 846.77], [11, 581.55],
+     [5, 398.71], [3, 370.66], [4, 349.8], [6, 203.2], [7, 80.3], [1, 45.03]]
+- name: cities by purchases
+  sql: >-
+    SELECT u.city, COUNT(*) AS n FROM users u JOIN purchases p ON p.user_id = u.id
+    GROUP BY u.city ORDER BY n DESC, u.city
+  expect: [[Zq0t9u8v8u1p, 6], [Zq1g0n1g0m8q, 6], [Zq8t1s9q9w9j, 5], [Zq9u9t9v0y0p, 3]]

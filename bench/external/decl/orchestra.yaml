@@ -1,0 +1,15 @@
+# Spider dev.
+db: orchestra
+set: spider
+entities:
+  - {table: conductor, pk: conductor_id}
+columns:
+  conductor: {name: identifier, age: quasi, nationality: quasi}
+conditions:
+  - text: The market share of a band's performances is sensitive information.
+    columns: {performance: [share]}
+  - text: The number of attendees at a performance is sensitive information.
+    columns: {show: [attendance]}
+  # A count per conductor: the column that ties an orchestra to its conductor is closed.
+  - text: The number of times a conductor has conducted cannot be disclosed.
+    columns: {orchestra: [conductor_id]}

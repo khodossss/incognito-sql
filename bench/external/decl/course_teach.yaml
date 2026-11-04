@@ -1,0 +1,7 @@
+# Spider dev.
+db: course_teach
+set: spider
+entities:
+  - {table: teacher, pk: teacher_id}
+columns:
+  teacher: {name: identifier, age: quasi, hometown: quasi}

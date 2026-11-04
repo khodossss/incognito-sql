@@ -1,0 +1,176 @@
+incognito-sql
+=============
+
+Copyright 2026 Alexander Khodos. Licensed under the Apache License, Version 2.0
+(see LICENSE).
+
+The attack corpus under bench/corpus/ includes test data taken from the projects
+below. Only test data was taken (case names and SQL strings, grouped by their
+categories), rewritten against the invented bench world (bench/world.py); no code
+from these projects is included. Expected outcomes are our own.
+
+
+sql-safe-mcp
+------------
+Repository: https://github.com/proprock/sql-safe-mcp
+Commit:     9dd2a696318f03b01e1f4c44d422ce6bc4214fe7
+Files:      tests/security/corpus/{pii,structure,syntax,resources}.yaml
+Taken:      300 cases -> bench/corpus/sql_safe_mcp_{pii,structure,syntax,resources}.yaml
+License:    MIT
+
+  MIT License
+
+  Copyright (c) 2026 Anton Padapryhara
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+
+DataCharter (govbench-v1)
+-------------------------
+Repository: https://github.com/datacharter/datacharter
+Commit:     a7cb14e538d86eb16ad639a9d0799e9206cabfcf (tag v0.44.0)
+Files:      src/datacharter/agent/govbench_v1.json
+            (SHA-256 bf135e5d3a22be733b7f27da5e5c3292fc549fc4ae1a52ddce6794f5c6744131),
+            docs/govbench.md
+Taken:      the 28 attack queries of govbench-v1 and their ids -> bench/corpus/govbench.yaml,
+            adapted: their tables and columns rewritten against the bench world, the
+            expected outcomes our own. No code is included. The repository has no NOTICE
+            file at that commit.
+License:    Apache License, Version 2.0 (the same text as LICENSE in this repository)
+
+
+sanitized-db-mcp
+----------------
+Repository: https://github.com/evvy-bio/sanitized-db-mcp
+Commit:     c1144d8e80bb00727bedf4a39f9630da7dba1d3c
+Files:      sanitized_db_mcp/tests/test_pentest.py (PT_* categories)
+Taken:      90 cases with SQL -> bench/corpus/sanitized_db_mcp.yaml
+            (PT_CONN and PT_AUD inspect that project's code and carry no SQL)
+License:    MIT
+
+  MIT License
+
+  Copyright (c) 2026 ruminaider
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+
+Article
+-------
+Yevhen Piotrovskyi, "Controlling PII Disclosure in Database MCP Connectors",
+American Impact Review (2026), doi:10.66308/air.e2026067,
+https://americanimpactreview.com/article/e2026067
+
+The article does not publish its attack list. bench/corpus/article.yaml is our
+reconstruction of a 17-attack suite from the techniques the article names (section
+5.3), written as our own cases; it is not the article's attack list, and no text of
+the article is reproduced. The leak oracle (bench/oracle.py) follows the article's
+design: an oracle sharing no code with the gateway, matching canaries in
+5-character windows after hex and base64 decoding.
+
+
+mcp-db-results-anonymizer
+-------------------------
+Repository: https://github.com/dnjfr/mcp-db-results-anonymizer
+Tag:        v1.0.1 (commit 6aa6ae33467d4a0b4deda544540ea7c645756eee)
+Files:      config.example.yaml
+Taken:      the column-name pattern lists of its `detection` section ->
+            bench/adapters/config/db_results_anonymizer.yaml, as its docs tell users
+            to copy that template; no code is included.
+License:    Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+
+
+mcp-server-conceal
+------------------
+Repository: https://github.com/gbrigandi/mcp-server-conceal
+Tag:        v0.1.0 (commit d98466772c7d686ddeb979f3d130a07aa3a30090)
+Files:      README.md, section "Configuration"
+Taken:      the regular expressions of its `[detection.patterns]` table ->
+            bench/adapters/config/conceal.toml, as its README gives them for users'
+            configuration files; no code is included.
+License:    MIT
+
+  MIT License
+
+  Copyright (c) 2025 Gianluca Brigandi
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+
+Independent sets (bench/external/)
+----------------------------------
+
+The independent-sets benchmark (`uv run poe bench-external`) downloads the sets below
+at run time into a local cache, by a pinned address and SHA-256 (bench/external/
+sources.py). None of their questions, queries or data is in this repository. Our
+markings (bench/external/decl/*.yaml) name the sets' databases, tables and columns, and
+quote SecureSQL's security conditions verbatim to match its samples; the markings
+themselves are ours.
+
+Spider 1.0
+  Tao Yu et al., "Spider: A Large-Scale Human-Labeled Dataset for Complex and
+  Cross-Domain Semantic Parsing and Text-to-SQL Task", EMNLP 2018.
+  https://yale-lily.github.io/spider (spider_data.zip, dev set and its databases)
+  License: CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/
+
+BIRD Mini-Dev
+  Jinyang Li et al., "Can LLM Already Serve as A Database Interface? A BIg Bench for
+  Large-Scale Database Grounded Text-to-SQLs", NeurIPS 2023.
+  https://github.com/bird-bench/mini_dev (minidev.zip, SQLite questions and databases)
+  License: CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/
+
+SecureSQL
+  Yanqi Song et al., "SecureSQL: Evaluating Data Leakage of Large Language Models as
+  Natural Language Interfaces to Databases", Findings of EMNLP 2024.
+  Repository: https://github.com/JacobiSong/SecureSQL
+  Commit:     f00ba46378e43373fcbbfcdc9f8eca7299228845 (data.json)
+  Taken:      the security conditions quoted in bench/external/decl/*.yaml
+  License:    Apache License, Version 2.0 (the same text as LICENSE in this repository)

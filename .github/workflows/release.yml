@@ -1,0 +1,39 @@
+name: release
+
+# Publishes to PyPI when a tag v* is pushed. PyPI trusts this workflow (trusted publishing):
+# no password or token is stored in GitHub.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  UV_PYTHON: "3.13"
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: uv run poe gate
+
+  publish:
+    needs: gate
+    # Only the public repository publishes: its code is what PyPI's page links to.
+    if: github.repository == 'khodossss/incognito-sql'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read  # job permissions replace the workflow's: checkout needs it
+      id-token: write  # the short-lived identity PyPI checks instead of a password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Tag matches the package version
+        run: test "${GITHUB_REF_NAME#v}" = "$(uv version --short)"
+      - run: uv build
+      - uses: pypa/gh-action-pypi-publish@release/v1

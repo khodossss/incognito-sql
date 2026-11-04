@@ -1,0 +1,34 @@
+# Strict closes what the scan order decides; wider profiles answer these as before.
+- name: an error inside EXISTS tells which row came first
+  sql: SELECT id FROM users u WHERE EXISTS (SELECT 1 FROM purchases p WHERE p.user_id + 1 > 2)
+  expect: reject
+  reason: fallible_subquery
+  source: ours
+- name: an error inside a CTE read row by row
+  sql: WITH d AS (SELECT user_id * 2 AS x FROM purchases) SELECT x FROM d
+  expect: reject
+  reason: fallible_subquery
+  source: ours
+- name: a case-blind collation shows the spelling met first
+  sql: SELECT DISTINCT u.tier FROM users u JOIN purchases p ON u.email = p.buyer_email
+  expect: reject
+  reason: equal_spellings
+  dialects: [mysql, tsql]
+  source: ours
+- name: an aggregate read again for each row of EXISTS
+  sql: SELECT id FROM users u WHERE EXISTS (SELECT 1 FROM purchases p WHERE (SELECT COUNT(*) FROM purchases q WHERE q.user_id / (p.user_id - 3) > 0) > 0)
+  expect: reject
+  reason: fallible_subquery
+  source: ours
+- name: an identifier condition in a derived table rules the outer DISTINCT
+  sql: SELECT DISTINCT d.tier FROM (SELECT u.tier FROM users u JOIN purchases p ON u.email = p.buyer_email) AS d
+  expect: reject
+  reason: equal_spellings
+  dialects: [mysql, tsql]
+  source: ours
+- name: a text column met with a number inside EXISTS
+  sql: SELECT id FROM users u WHERE EXISTS (SELECT 1 FROM users v WHERE v.tier = 5)
+  expect: reject
+  reason: fallible_subquery
+  dialects: [tsql, duckdb]
+  source: ours

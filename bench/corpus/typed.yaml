@@ -1,0 +1,177 @@
+# Typed identifiers (bench world table `ledger`), rulings R69-R72: identifier against
+# identifier only within a cast-safe group or the identical type; literals bound with a CAST
+# to the column's exact type; a token whose raw forms misfit the column matches nothing;
+# ENUM and user-defined targets refused by column type. Tokens come from the web store, so
+# token cases run in web mode.
+- name: R69 decimal identifier against a bigint identifier
+  sql: "SELECT l.id FROM ledger l JOIN users u ON u.phone = l.amount"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: R69 decimal identifier in a bigint subquery
+  sql: "SELECT l.id FROM ledger l WHERE l.amount IN (SELECT phone FROM users)"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: R69 date identifier against a timestamp identifier
+  sql: "SELECT id FROM ledger WHERE born = seen_at"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: R69 union of a decimal and a bigint identifier
+  sql: "SELECT amount FROM ledger UNION ALL SELECT phone FROM users"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: R69 identical decimal types compare
+  sql: "SELECT a.id FROM ledger a JOIN ledger b ON a.amount = b.amount_b"
+  expect: answer
+  source: ours
+- name: R69 money identifier against a decimal identifier
+  sql: "SELECT id FROM ledger WHERE cash = amount"
+  expect: reject
+  reason: literal_type_mismatch
+  dialects: [tsql]
+  source: ours
+- name: R69 hugeint identifier against a bigint identifier
+  sql: "SELECT l.id FROM ledger l JOIN users u ON u.phone = l.huge"
+  expect: reject
+  reason: literal_type_mismatch
+  dialects: [duckdb]
+  source: ours
+- name: R69 unsigned identifier against a signed identifier
+  sql: "SELECT l.id FROM ledger l JOIN users u ON u.phone = l.unsigned_no"
+  expect: reject
+  reason: literal_type_mismatch
+  dialects: [mysql]
+  source: ours
+- name: R71 timestamp identifier against a timestamptz identifier
+  sql: "SELECT id FROM ledger WHERE seen_at = seen_tz"
+  expect: reject
+  reason: literal_type_mismatch
+  dialects: [postgres, duckdb, tsql]
+  source: ours
+- name: R70 number literal on a decimal identifier
+  sql: "SELECT id FROM ledger WHERE amount = 12.5"
+  expect: answer
+  source: ours
+- name: R70 text literal on a decimal identifier
+  sql: "SELECT id FROM ledger WHERE amount = 'x'"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: R70 number literal on a date identifier
+  sql: "SELECT id FROM ledger WHERE born = 5"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: R70 date literal on a date identifier
+  sql: "SELECT id FROM ledger WHERE born = '2001-02-03'"
+  expect: safe
+  source: ours
+- name: R70 number literal on a hugeint identifier
+  sql: "SELECT id FROM ledger WHERE huge = 12"
+  expect: answer
+  dialects: [duckdb]
+  source: ours
+- name: R70 number literal on a money identifier
+  sql: "SELECT id FROM ledger WHERE cash = 12.5"
+  expect: safe  # refused today (literal kind, MONEY is not coerced): a narrowing, not a mandate
+  dialects: [tsql]
+  source: ours
+- name: R70 number literal on an unsigned identifier
+  sql: "SELECT id FROM ledger WHERE unsigned_no = 12"
+  expect: answer
+  dialects: [mysql]
+  source: ours
+- name: R72 text token on a decimal identifier
+  sql: "SELECT id FROM ledger WHERE amount = '{{TOKEN_OWN}}'"
+  expect: answer
+  mode: web
+  source: ours
+- name: R72 text token on a bigint identifier
+  sql: "SELECT id FROM users WHERE phone = '{{TOKEN_OWN}}'"
+  expect: answer
+  mode: web
+  source: ours
+- name: R72 text token on a date identifier
+  sql: "SELECT id FROM ledger WHERE born = '{{TOKEN_OWN}}'"
+  expect: answer
+  mode: web
+  source: ours
+- name: R72 text token on a timestamp identifier
+  sql: "SELECT id FROM ledger WHERE seen_at = '{{TOKEN_OWN}}'"
+  expect: answer
+  mode: web
+  source: ours
+- name: R72 text token on a timestamptz identifier
+  sql: "SELECT id FROM ledger WHERE seen_tz = '{{TOKEN_OWN}}'"
+  expect: answer
+  mode: web
+  dialects: [postgres, duckdb, tsql]
+  source: ours
+- name: R72 text token on a money identifier
+  sql: "SELECT id FROM ledger WHERE cash = '{{TOKEN_OWN}}'"
+  expect: answer
+  mode: web
+  dialects: [tsql]
+  source: ours
+- name: R72 text token on a hugeint identifier
+  sql: "SELECT id FROM ledger WHERE huge = '{{TOKEN_OWN}}'"
+  expect: answer
+  mode: web
+  dialects: [duckdb]
+  source: ours
+- name: R72 text token on an unsigned identifier
+  sql: "SELECT id FROM ledger WHERE unsigned_no = '{{TOKEN_OWN}}'"
+  expect: answer
+  mode: web
+  dialects: [mysql]
+  source: ours
+- name: R72 text token in a list on a decimal identifier
+  sql: "SELECT id FROM ledger WHERE amount IN ('{{TOKEN_OWN}}', '{{TOKEN_OWN}}')"
+  expect: answer
+  mode: web
+  source: ours
+- name: R72 token on an enum identifier
+  sql: "SELECT id FROM ledger WHERE mood = '{{TOKEN_OWN}}'"
+  expect: reject
+  reason: literal_type_mismatch
+  mode: web
+  dialects: [postgres, mysql, duckdb]
+  source: ours
+- name: R72 literal on an enum identifier
+  sql: "SELECT id FROM ledger WHERE mood = 'calm'"
+  expect: reject
+  reason: literal_type_mismatch
+  dialects: [postgres, mysql, duckdb]
+  source: ours
+- name: typed identifiers come out as tokens
+  sql: "SELECT amount, born, seen_at FROM ledger"
+  expect: answer
+  source: ours
+- name: typed identifiers of one DBMS come out as tokens
+  sql: "SELECT seen_tz FROM ledger"
+  expect: answer
+  dialects: [postgres, duckdb, tsql]
+  source: ours
+- name: enum identifier comes out as tokens
+  sql: "SELECT mood FROM ledger"
+  expect: answer
+  dialects: [postgres, mysql, duckdb]
+  source: ours
+- name: range on a date identifier
+  sql: "SELECT id FROM ledger WHERE born > '2001-01-01'"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: max of a date identifier
+  sql: "SELECT MAX(born) FROM ledger"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: cast of a decimal identifier
+  sql: "SELECT CAST(amount AS INTEGER) AS n FROM ledger"
+  expect: reject
+  reason: pii_operation
+  source: ours

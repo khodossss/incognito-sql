@@ -1,0 +1,74 @@
+# mcp-db-results-anonymizer 1.0.1 on our bench world, one file for every DBMS (the adapter
+# sets BENCH_DB_TYPE, BENCH_DB_PORT, BENCH_DB_PASSWORD). Made as its docs say (repo tag
+# v1.0.1, SHA 6aa6ae3): config.example.yaml copied, then docs/DETECTION.md "Manual
+# Classification" for the columns its name patterns do not cover. Our classes become its
+# levels: secret and undeclared columns -> secret ([REDACTED]); free text -> secret (the
+# template's free_text default is redact); numeric and typed identifiers its patterns do
+# not name -> confidential (numbers +-15 %, other values [REDACTED]); open and quasi
+# columns -> public. Name-matched identifiers keep the template's Faker types; `born` is
+# added to DATE_OF_BIRTH. `overrides` would be ignored by querySql (it reads them only in
+# describeTable), so none are used. The secrets table is a blocked table.
+databases:
+  world:
+    type: ${BENCH_DB_TYPE}
+    host: localhost
+    port: ${BENCH_DB_PORT}
+    user: bench_reader
+    password: ${BENCH_DB_PASSWORD}
+    database: world
+
+detection:
+  column_patterns:
+    FIRST_NAME: ["first_name*", "firstname*", "prenom"]
+    LAST_NAME: ["last_name*", "lastname*", "nom_famille"]
+    PERSON: ["*name*", "nom"]
+    EMAIL: ["*email*", "*mail*", "courriel"]
+    PHONE: ["*phone*", "*tel*", "*mobile*", "*fax*", "telephone"]
+    ADDRESS: ["*address*", "*addr*", "*street*", "*zip*", "*postal*"]
+    CITY: ["*city*", "*ville*"]
+    COUNTRY: ["*country*", "*pays*"]
+    CREDENTIAL: ["*password*", "*passwd*", "*username*", "*secret*", "*token*"]
+    SSN: ["*ssn*", "*social_security*", "*num_secu*"]
+    FINANCIAL: ["*iban*", "*credit_card*", "*card_number*", "*cvc*"]
+    IP: ["*ip_address*", "*ip_addr*"]
+    GEO: ["*latitude*", "*longitude*", "*geo_*"]
+    URL: ["*_url", "*profile_url*", "*avatar*", "*website*"]
+    DATE_OF_BIRTH: ["*birth*", "*dob*", "*naissance*", "born"]
+    SALARY: ["*salary*", "*salaire*", "*wage*", "*compensation*", "*remuneration*"]
+    REVENUE: ["*revenue*", "*chiffre_affaires*", "*margin*", "*marge*", "*profit*",
+              "*benefice*", "*turnover*"]
+    SCORE: ["*_score*", "*credit_score*", "*fraud_score*", "*risk_score*",
+            "*credit_rating*", "*risk_rating*", "*note_*"]
+    PRICE: ["*unit_price*", "*prix*", "*discount_rate*", "*taux_*"]
+    SIRET: ["*siret*"]
+    SIREN: ["*siren*"]
+  sensitivity:
+    secret: [password_hash, api_key, ssn, note, bio, body]
+    confidential: [amount, amount_b, cash, unsigned_no, mood, seen_at, seen_tz]
+    public: [id, user_id, total, tier, city, "odd name"]
+  value_scan:
+    enabled: true
+    sample_size: 50
+  free_text:
+    default_strategy: redact
+  overrides: {}
+
+anonymization:
+  strategy: pseudonymize
+  locale: "fr_FR"
+
+storage:
+  path: /tmp/anonymizer/mappings.db
+  mode: ephemeral
+  ttl_minutes: 30
+
+security:
+  read_only: true
+  max_rows: 100
+  blocked_tables: [pg_shadow, pg_authid, pg_roles, pg_stat_activity, vault]
+  blocked_functions: [pg_read_file, pg_read_binary_file, lo_import, lo_export,
+                      pg_execute_server_program, dblink]
+  scan_error_messages: true
+
+mongodb:
+  schema_sample_size: 100

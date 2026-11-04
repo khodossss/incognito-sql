@@ -1,0 +1,66 @@
+# Attack corpus from sql-safe-mcp (resource exhaustion), rewritten to the bench world.
+# Origin and license: NOTICE. Only names and SQL are taken; expectations are ours.
+- name: oversized sql text
+  sql: SELECT id FROM users{{PAD:70000}}
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp
+- name: sql exactly over the limit by one
+  sql: SELECT id FROM users{{PAD:19981}}
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp
+- name: deeply nested parentheses
+  sql: SELECT id FROM users WHERE {{NEST:3000}}
+  expect: safe
+  source: sql-safe-mcp
+- name: very deeply nested parentheses
+  sql: SELECT {{NEST:20000}} FROM users
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp
+- name: in list over the limit
+  sql: SELECT id FROM users WHERE id IN ({{IN_LIST:51}})
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp
+- name: many in lists
+  sql: SELECT id FROM users WHERE id IN ({{IN_LIST:400}}) AND id IN ({{IN_LIST:400}}) AND id IN ({{IN_LIST:400}}) AND id IN ({{IN_LIST:400}}) AND id IN ({{IN_LIST:400}})
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp
+- name: too many joins
+  sql: SELECT u.id FROM users u{{JOINS:9}}
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp
+- name: many projections
+  sql: SELECT {{REPEAT:id, :1100}}id FROM users
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp
+- name: long or chain
+  sql: SELECT id FROM users WHERE {{REPEAT:id = 1 OR :1100}}id = 1
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp
+- name: long and chain
+  sql: SELECT id FROM users WHERE {{REPEAT:id = 1 AND :1100}}id = 1
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp
+- name: huge string literal
+  sql: SELECT id FROM users WHERE name = '{{PAD_CHAR:a:70000}}'
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp
+- name: huge identifier
+  sql: SELECT [{{PAD_CHAR:a:70000}}] FROM users
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp
+- name: many statements
+  sql: '{{REPEAT:SELECT 1; :5000}}'
+  expect: reject
+  reason: limit_exceeded
+  source: sql-safe-mcp

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "connections": [
+    {
+      "id": "world",
+      "type": "mysql",
+      "host": "localhost",
+      "port": 3306,
+      "name": "world",
+      "user": "bench_reader",
+      "password_env": "DB_MCP_PASSWORD",
+      "read_only": true,
+      "max_rows": 1000,
+      "query_timeout": 10,
+      "mask_pii": true,
+      "masking_rules": [
+        {
+          "pattern": "(?i)^(name|email|buyer_email|phone|bio|body|amount|amount_b|born|seen_at|seen_tz|unsigned_no|mood)$",
+          "strategy": "fixed_string",
+          "value": "***MASKED***"
+        },
+        {"pattern": "(?i)^(password_hash|ssn|note|api_key)$", "strategy": "null"}
+      ]
+    }
+  ]
+}

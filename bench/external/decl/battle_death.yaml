@@ -1,0 +1,11 @@
+# Spider dev. Commanders are named people; casualties and ship types are not personal.
+db: battle_death
+set: spider
+entities: []
+columns:
+  battle: {bulgarian_commander: identifier, latin_commander: identifier}
+conditions:
+  - text: The number of casualties is sensitive information.
+    columns: {death: [killed, injured]}
+  - text: The type of ship destroyed is protected.
+    columns: {ship: [ship_type]}

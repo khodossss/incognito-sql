@@ -1,0 +1,70 @@
+// veil-proxy 0.3.2 on our bench world: the personal fields declared in code, as its README
+// says ("veil seed --schema DIR": Prisma `/// @pii <kind>`; kinds from veil/sources/schema.py
+// at repo SHA d4476c4). Every column that carries a hidden canary is declared: identifiers
+// with their kind, secrets as secret or id_number, free text and undeclared columns as bare
+// `pii` (veil then seeds the whole value as an opaque one). veil seeds text columns only
+// (docs/DATABASES.md, "never select non-text columns"), so the numeric, date and time
+// columns declared here are not learned: veil has no way to protect them.
+model users {
+  id            Int @id
+  /// @pii name
+  name          String
+  /// @pii email
+  email         String
+  /// @pii phone
+  phone         BigInt
+  /// @pii
+  bio           String
+  /// @pii secret
+  password_hash String
+  /// @pii id_number
+  ssn           String
+}
+
+model purchases {
+  id          Int @id
+  /// @pii email
+  buyer_email String
+  /// @pii
+  note        String
+}
+
+model ledger {
+  id          Int @id
+  /// @pii
+  amount      Decimal
+  /// @pii
+  amount_b    Decimal
+  /// @pii
+  born        DateTime
+  /// @pii
+  seen_at     DateTime
+  /// @pii
+  seen_tz     DateTime
+  /// @pii
+  cash        Decimal
+  /// @pii
+  huge        Decimal
+  /// @pii
+  unsigned_no BigInt
+  /// @pii
+  mood        String
+}
+
+model contacts {
+  id    Int @id
+  /// @pii email
+  email String
+}
+
+model tickets {
+  id   Int @id
+  /// @pii
+  body String
+}
+
+model vault {
+  id      Int @id
+  /// @pii secret
+  api_key String
+}

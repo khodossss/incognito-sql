@@ -1,0 +1,19 @@
+# Spider dev. Players, and the winner and loser of each match, are named people.
+db: wta_1
+set: spider
+entities:
+  - {table: players, pk: player_id}
+columns:
+  players: {first_name: identifier, last_name: identifier, birth_date: quasi, country_code: quasi}
+  matches:
+    winner_name: identifier
+    loser_name: identifier
+    winner_age: quasi
+    loser_age: quasi
+    winner_ht: quasi
+    loser_ht: quasi
+    winner_ioc: quasi
+    loser_ioc: quasi
+# A match score and a tournament id read as phone numbers.
+verified_open:
+  matches: [score, tourney_id]

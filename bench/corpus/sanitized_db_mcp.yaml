@@ -1,0 +1,423 @@
+# Attack corpus from sanitized-db-mcp, PT_* pentest categories, rewritten to the bench world.
+# Origin and license: NOTICE. Their hidden `email` maps to the identifier `email`, `payload`
+# to the free_text `bio`, other hidden columns to `ssn`; PT_CONN and PT_AUD carry no SQL.
+- name: PT_OGD_001 order by hidden column
+  sql: SELECT id FROM users ORDER BY email
+  expect: reject
+  reason: pii_operation
+  source: sanitized-db-mcp
+- name: PT_OGD_002 order by hidden desc
+  sql: SELECT id FROM users ORDER BY email DESC
+  expect: reject
+  reason: pii_operation
+  source: sanitized-db-mcp
+- name: PT_OGD_003 order by function of hidden
+  sql: SELECT id FROM users ORDER BY LENGTH(email)
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_OGD_004 order by hidden nulls first
+  sql: SELECT id FROM users ORDER BY email NULLS FIRST
+  expect: reject
+  reason: pii_operation
+  source: sanitized-db-mcp
+- name: PT_OGD_005 group by hidden column
+  sql: SELECT COUNT(*) FROM users GROUP BY email
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_OGD_006 group by function of hidden
+  sql: SELECT COUNT(*) FROM users GROUP BY SUBSTRING(email, 1, 5)
+  expect: reject
+  reason: pii_operation
+  source: sanitized-db-mcp
+- name: PT_OGD_007 distinct on hidden
+  sql: SELECT DISTINCT ON (email) id, tier FROM users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_OGD_008 group by positional with redacted select
+  sql: SELECT email AS e, COUNT(*) FROM users GROUP BY 1
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_OGD_009 order by positional with redacted select
+  sql: SELECT email, id FROM users ORDER BY 1
+  expect: reject
+  reason: pii_operation
+  source: sanitized-db-mcp
+- name: PT_OGD_010 order by visible column
+  sql: SELECT id FROM users ORDER BY tier
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_OGD_011 grouping sets hidden
+  sql: SELECT COUNT(*) FROM users GROUP BY GROUPING SETS ((email), (tier))
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_OGD_012 rollup hidden
+  sql: SELECT COUNT(*) FROM users GROUP BY ROLLUP(email, tier)
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_OGD_013 cube hidden
+  sql: SELECT COUNT(*) FROM users GROUP BY CUBE(email, tier)
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_WIN_001 row number partition by hidden
+  sql: SELECT id, ROW_NUMBER() OVER (PARTITION BY email ORDER BY id) AS rn FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_WIN_002 rank order by hidden
+  sql: SELECT id, RANK() OVER (ORDER BY email) AS rnk FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_WIN_003 named window partition by hidden
+  sql: SELECT id, COUNT(*) OVER w FROM users WINDOW w AS (PARTITION BY email)
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_WIN_004 frame clause hidden order by
+  sql: SELECT id, SUM(id) OVER (ORDER BY email ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_WIN_005 ntile order by hidden
+  sql: SELECT id, NTILE(4) OVER (ORDER BY email) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_WIN_006 window with visible columns
+  sql: SELECT id, COUNT(*) OVER (PARTITION BY tier ORDER BY id) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_FLT_001 count filter hidden is not null
+  sql: SELECT COUNT(*) FILTER (WHERE email IS NOT NULL) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_FLT_002 count filter hidden like
+  sql: SELECT COUNT(*) FILTER (WHERE email LIKE 'a%') FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_FLT_003 count filter hidden comparison
+  sql: SELECT COUNT(*) FILTER (WHERE email > 'admin@') FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_FLT_004 count filter visible column
+  sql: SELECT COUNT(*) FILTER (WHERE tier = 'basic') FROM users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_CTE_001 cte selects hidden column
+  sql: WITH leaked AS (SELECT email FROM users) SELECT * FROM leaked
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_CTE_002 cte hidden unused
+  sql: WITH leaked AS (SELECT ssn FROM users) SELECT id FROM users
+  expect: reject
+  reason: hidden_column
+  source: sanitized-db-mcp
+- name: PT_CTE_003 recursive cte hidden
+  sql: WITH RECURSIVE r AS (SELECT id, email FROM users WHERE id = 1 UNION ALL SELECT u.id, u.email FROM users u JOIN r ON r.id = u.id - 1) SELECT * FROM r
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_CTE_004 cte where hidden
+  sql: WITH filtered AS (SELECT id FROM users WHERE email LIKE 'a%') SELECT * FROM filtered
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_CTE_005 cte aliased to real table
+  sql: WITH users AS (SELECT email FROM users) SELECT email FROM users
+  expect: reject
+  reason: ambiguous_column
+  source: sanitized-db-mcp
+- name: PT_CTE_006 materialized cte hidden
+  sql: WITH leaked AS MATERIALIZED (SELECT email FROM users) SELECT * FROM leaked
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_LAT_001 lateral references hidden column
+  sql: SELECT u.id, sub.ct FROM users u, LATERAL (SELECT COUNT(*) AS ct FROM purchases p WHERE p.buyer_email = u.email) sub
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_LAT_002 lateral selects hidden
+  sql: SELECT p.id, sub.e FROM purchases p, LATERAL (SELECT email AS e FROM users u WHERE u.id = p.user_id LIMIT 1) sub
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_LAT_003 lateral visible columns
+  sql: SELECT p.id, sub.ct FROM purchases p, LATERAL (SELECT COUNT(*) AS ct FROM users u WHERE u.id = p.user_id) sub
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_SQI_001 public schema prefix
+  sql: SELECT id FROM public.users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_SQI_002 quoted hidden column
+  sql: SELECT "email" FROM users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_SQI_003 case insensitive column
+  sql: SELECT "EMAIL" FROM users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_SQI_004 alias dotted hidden
+  sql: SELECT "P"."email" FROM users "P"
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_SQI_005 unicode escape identifier
+  sql: SELECT U&"\0065mail" FROM users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_SQI_006 only keyword
+  sql: SELECT email FROM ONLY users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_SQI_007 pg temp schema
+  sql: SELECT * FROM pg_temp.leaked_data
+  expect: reject
+  reason: unknown_column
+  source: sanitized-db-mcp
+- name: PT_SQI_008 pg catalog qualified function
+  sql: SELECT pg_catalog.md5(email) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_CTR_001 field selection from composite
+  sql: SELECT (u).email FROM (SELECT u FROM users u) sub(u)
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_CTR_002 row constructor hidden
+  sql: SELECT ROW(id, email) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_CTR_003 nested field selection
+  sql: SELECT (sub.r).email FROM (SELECT u AS r FROM users u) sub
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_ARR_001 array subquery hidden
+  sql: SELECT ARRAY(SELECT email FROM users)
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_ARR_002 array agg hidden
+  sql: SELECT ARRAY_AGG(email) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_ARR_003 array literal hidden columns
+  sql: SELECT ARRAY[email, phone] FROM users
+  expect: refuse
+  source: sanitized-db-mcp
+- name: PT_JSON_001 arrow operator
+  sql: SELECT bio->'key' FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_JSON_002 double arrow operator
+  sql: SELECT bio->>'key' FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_JSON_003 path extraction
+  sql: 'SELECT bio #> ''{key}'' FROM users'
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_JSON_004 contains operator in where
+  sql: 'SELECT id FROM users WHERE bio @> ''{"key": "value"}'''
+  expect: refuse
+  source: sanitized-db-mcp
+- name: PT_JSON_005 exists operator in where
+  sql: SELECT id FROM users WHERE bio ? 'email'
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_CAST_001 explicit cast hidden
+  sql: SELECT CAST(email AS text) FROM users
+  expect: reject
+  reason: pii_operation
+  source: sanitized-db-mcp
+- name: PT_CAST_002 shorthand cast hidden
+  sql: SELECT email::text FROM users
+  expect: reject
+  reason: pii_operation
+  source: sanitized-db-mcp
+- name: PT_CAST_003 double cast hidden
+  sql: SELECT email::bytea::text FROM users
+  expect: reject
+  reason: pii_operation
+  source: sanitized-db-mcp
+- name: PT_CAST_004 cast in where rejected
+  sql: SELECT id FROM users WHERE email::text LIKE 'a%'
+  expect: reject
+  reason: pii_operation
+  source: sanitized-db-mcp
+- name: PT_FROM_001 values clause
+  sql: SELECT * FROM (VALUES (1, 'fake@email.com')) AS t(id, email)
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_FROM_002 tablesample
+  sql: SELECT email FROM users TABLESAMPLE BERNOULLI(10)
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_FROM_003 generate series
+  sql: SELECT * FROM generate_series(1, 10) AS gs(id)
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_LOCK_001 for update
+  sql: SELECT id FROM users FOR UPDATE
+  expect: refuse
+  source: sanitized-db-mcp
+- name: PT_LOCK_002 for share
+  sql: SELECT id FROM users FOR SHARE
+  expect: refuse
+  source: sanitized-db-mcp
+- name: PT_LOCK_003 for update skip locked
+  sql: SELECT id FROM users FOR UPDATE SKIP LOCKED
+  expect: refuse
+  source: sanitized-db-mcp
+- name: PT_NEST_001 triple nested scalar subquery
+  sql: SELECT (SELECT (SELECT (SELECT email FROM users LIMIT 1)))
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT id FROM users"
+  source: sanitized-db-mcp
+- name: PT_NEST_002 correlated subquery hidden select
+  sql: SELECT p.id, (SELECT u.name FROM users u WHERE u.id = p.user_id) FROM purchases p
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT id FROM purchases"
+  source: sanitized-db-mcp
+- name: PT_NEST_003 case with count hidden where
+  sql: SELECT CASE WHEN (SELECT COUNT(*) FROM users WHERE email LIKE 'a%') > 0 THEN 'yes' ELSE 'no' END
+  expect: reject
+  reason: pii_operation
+  source: sanitized-db-mcp
+- name: PT_NEST_004 not exists hidden correlation
+  sql: SELECT p.id FROM purchases p WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.email = 'target@test.com' AND u.id = p.user_id)
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_NEST_005 any subquery hidden where
+  sql: SELECT id FROM purchases WHERE user_id = ANY(SELECT id FROM users WHERE email LIKE '%@example.com')
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_STMT_001 select into
+  sql: SELECT email INTO new_table FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_STMT_002 copy to stdout
+  sql: COPY (SELECT email FROM users) TO STDOUT
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_STMT_003 null byte injection
+  sql: "SELECT id FROM users\0; DROP TABLE users"
+  expect: reject
+  reason: multiple_statements
+  source: sanitized-db-mcp
+- name: PT_STMT_004 comment injection
+  sql: SELECT id FROM users -- ; DROP TABLE users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_STMT_005 dollar quoted string
+  sql: SELECT $$test$$ FROM users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_AMB_001 join select hidden ambiguous
+  sql: SELECT u.id, email FROM users u JOIN contacts c ON c.id = u.id
+  expect: reject
+  reason: ambiguous_column
+  source: sanitized-db-mcp
+- name: PT_AMB_002 join where hidden ambiguous
+  sql: SELECT u.id FROM users u JOIN contacts c ON c.id = u.id WHERE email = 'test@test.com'
+  expect: reject
+  reason: ambiguous_column
+  source: sanitized-db-mcp
+- name: PT_AMB_003 nonexistent column no crash
+  sql: SELECT nonexistent FROM users u JOIN contacts c ON c.id = u.id
+  expect: reject
+  reason: unknown_column
+  source: sanitized-db-mcp
+- name: PT_ENC_001 cyrillic e homoglyph
+  sql: "SELECT \u0435mail FROM users"
+  expect: reject
+  reason: unknown_column
+  source: sanitized-db-mcp
+- name: PT_ENC_002 unicode escape identifier
+  sql: SELECT U&"\0065\006D\0061\0069\006C" FROM users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_ENC_003 alias with semicolon
+  sql: SELECT email AS "email; DROP TABLE" FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_ENC_004 very long alias
+  sql: SELECT email AS "{{PAD_CHAR:x:100}}" FROM users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_TIME_001 pg sleep conditional hidden
+  sql: SELECT CASE WHEN (SELECT COUNT(*) FROM users WHERE email LIKE 'a%') > 0 THEN pg_sleep(5) ELSE 1 END
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_TIME_002 order by repeat hidden
+  sql: SELECT id FROM users ORDER BY REPEAT(email, 1000000)
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_TIME_003 cross join amplification
+  sql: SELECT id FROM users CROSS JOIN generate_series(1, 1000) gs(n)
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_TIME_004 recursive infinite loop
+  sql: WITH RECURSIVE inf AS (SELECT 1 AS n UNION ALL SELECT n + 1 FROM inf) SELECT * FROM inf
+  expect: reject
+  reason: node_not_allowed
+  source: sanitized-db-mcp
+- name: PT_ERR_001 type error on hidden column
+  sql: SELECT id FROM users WHERE ssn = 12345
+  expect: reject
+  reason: hidden_column
+  source: sanitized-db-mcp
+- name: PT_ERR_002 division by zero conditional hidden
+  sql: SELECT CASE WHEN ssn IS NOT NULL THEN 1/0 ELSE 1 END FROM users
+  expect: reject
+  reason: hidden_column
+  source: sanitized-db-mcp
+- name: PT_ERR_003 error message no column name
+  sql: SELECT id FROM users WHERE ssn = 'test'
+  expect: reject
+  reason: hidden_column
+  source: sanitized-db-mcp
+- name: PT_ERR_004 unknown function generic error
+  sql: SELECT fake_function(id) FROM users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_AL_001 case insensitive table lookup
+  sql: SELECT EMAIL FROM USERS
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_AL_002 unknown column defaults to hidden
+  sql: SELECT password_hash FROM users
+  expect: reject
+  reason: hidden_column
+  source: sanitized-db-mcp
+- name: PT_AL_003 unknown function blocked
+  sql: SELECT my_custom_function(id) FROM users
+  expect: safe
+  source: sanitized-db-mcp
+- name: PT_AL_004 table with zero visible columns
+  sql: SELECT * FROM vault
+  expect: safe
+  source: sanitized-db-mcp

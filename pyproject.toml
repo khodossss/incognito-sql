@@ -1,0 +1,164 @@
+[project]
+name = "incognito-sql"
+version = "0.1.0"
+description = "Pseudonymizing MCP server: an LLM agent queries a database with personal data without seeing the values."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.12"
+keywords = ["mcp", "llm", "sql", "pii", "pseudonymization", "privacy"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Security",
+]
+dependencies = [
+    "cryptography>=50.0",
+    "keyring>=25.7",
+    "prompt-toolkit~=3.0.53",
+    "pydantic>=2.14",
+    "pyyaml>=6.0",
+    "questionary~=2.1.1",
+    "sqlalchemy>=2.1",
+    "sqlglot~=30.25.0",  # the parser is the boundary: a new version is a reviewed event
+    "starlette>=1.10",
+    "uvicorn>=0.54",
+]
+
+[project.optional-dependencies]
+mcp = [
+    "mcp>=2.3,<3",
+]
+postgres = [
+    "psycopg[binary]>=3.3.6",
+]
+mysql = [
+    "pymysql>=1.2.3",
+]
+mssql = [
+    "pymssql>=2.4.6",
+]
+duckdb = [
+    "duckdb>=2.0.0",
+    "duckdb-engine>=0.17.0",
+    "pytz>=2025.2",
+]
+
+[project.scripts]
+incognito-sql = "incognito_sql.cli:main"
+
+[dependency-groups]
+dev = [
+    "duckdb>=2.0.0",
+    "duckdb-engine>=0.17.0",
+    "httpx2>=2.16.0",
+    "hypothesis>=6.170.13",
+    "mcp>=2.3,<3",
+    "mypy>=1.13",
+    "poethepoet>=0.31",
+    "pre-commit>=4.0",
+    "psycopg[binary]>=3.3.6",
+    "pymssql>=2.4.6",
+    "pymysql>=1.2.3",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "pytz>=2025.2",
+    "ruff>=0.8",
+    "testcontainers>=4.15.0",
+    "types-pyyaml>=6.0.12.20260906",
+]
+
+[project.urls]
+Homepage = "https://github.com/khodossss/incognito-sql"
+Issues = "https://github.com/khodossss/incognito-sql/issues"
+Security = "https://github.com/khodossss/incognito-sql/blob/main/SECURITY.md"
+
+[build-system]
+requires = ["hatchling>=1.27"]  # license-files (PEP 639)
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/incognito_sql"]
+
+# The source archive carries the package and its public papers only: the repository stays
+# private until 0.1.0, and its agent files, bench and tests are not published before then.
+[tool.hatch.build.targets.sdist]
+only-include = ["src", "README.md", "LICENSE", "NOTICE", "CHANGELOG.md", "SECURITY.md"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["docs/superpowers"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812", # conflicts with ruff format
+    "D203",   # mutually exclusive with D211
+    "D213",   # mutually exclusive with D212
+    "CPY001", # no per-file headers: LICENSE and NOTICE at the root cover every file
+]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"mcp".msg = "the MCP SDK is the optional extra [mcp]: import it only in incognito_sql/mcp/"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "D", "INP001", "PLR2004"]
+"src/incognito_sql/mcp/**" = ["TID251"]
+"tests/server/**" = ["TID251"]
+"tests/bench/**" = ["TID251"]
+"bench/adapters/**" = ["TID251"]  # competitors are driven as MCP servers
+"bench/fuzz/**" = ["S608"]  # building random SQL from strings is the point
+
+[tool.mypy]
+strict = true
+files = ["src", "tests", "bench"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --strict-config -W error -m 'not integration' --cov=incognito_sql --cov-report=term-missing"
+testpaths = ["tests"]
+pythonpath = ["."]  # the bench package at the repo root
+markers = ["integration: needs Docker and the DBMS drivers (run with `poe integration`)"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[tool.mutmut]
+# The protective steps only; Linux (fork). Run: `uv run mutmut run` in a container or CI.
+source_paths = ["src/incognito_sql"]
+only_mutate = [
+    "src/incognito_sql/core/sql/*",
+    "src/incognito_sql/core/output/*",
+    "src/incognito_sql/core/tokens/*",
+    "src/incognito_sql/core/budget.py",
+    "src/incognito_sql/core/audit.py",
+    "src/incognito_sql/core/pipeline.py",
+    "src/incognito_sql/core/display.py",
+    "src/incognito_sql/core/config/row_rules.py",
+    "src/incognito_sql/web/guard.py",
+    "src/incognito_sql/web/session.py",
+]
+also_copy = ["bench", "tests"]
+pytest_add_cli_args_test_selection = ["tests/core", "tests/server", "tests/web", "tests/bench/test_corpus.py"]
+# Coverage stays on (the corpus tests mark themselves no_cover), without its threshold.
+# A real `serve` child over stdio cannot run inside mutmut's forked runner: transport only.
+pytest_add_cli_args = [
+    "--cov-fail-under=0",
+    "--cov-report=",
+    "--ignore=tests/server/test_serve_stdio.py",
+]
+
+[tool.poe.tasks]
+lint = "ruff check ."
+format-check = "ruff format --check ."
+typecheck = "mypy"
+test = "pytest"
+gate = ["lint", "format-check", "typecheck", "test"]
+integration = "pytest -m integration --no-cov tests/integration"
+bench = "python -m bench.run"  # the full benchmark: every tool, five DBMS (Docker)
+bench-external = "python -m bench.external.run"  # Spider, BIRD Mini-Dev, SecureSQL on SQLite

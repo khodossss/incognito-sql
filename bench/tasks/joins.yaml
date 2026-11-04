@@ -1,0 +1,64 @@
+# Benign questions joining by id, and filters by a literal a human typed. Columns marked
+# in `opaque` hold identifier values: the reference there is a label per person (u<id>),
+# and any shown value counts as long as labels and shown values pair one to one (a token
+# or pseudonym keeps people apart; one placeholder for two people, or two values for one
+# person, does not). Seed-15 world, as in aggregates.yaml.
+- name: city of every user
+  sql: SELECT id, city FROM users
+  expect:
+    [[1, Zq0t9u8v8u1p], [2, Zq8t1s9q9w9j], [3, Zq9u9t9v0y0p], [4, Zq1g0n1g0m8q],
+     [5, Zq0t9u8v8u1p], [6, Zq8t1s9q9w9j], [7, Zq9u9t9v0y0p], [8, Zq1g0n1g0m8q],
+     [9, Zq0t9u8v8u1p], [10, Zq8t1s9q9w9j], [11, Zq9u9t9v0y0p], [12, Zq1g0n1g0m8q]]
+- name: city of users 1 to 3
+  sql: SELECT id, city FROM users WHERE id IN (1, 2, 3)
+  expect: [[1, Zq0t9u8v8u1p], [2, Zq8t1s9q9w9j], [3, Zq9u9t9v0y0p]]
+- name: users in a city
+  sql: SELECT id, tier FROM users WHERE city = 'Zq9u9t9v0y0p'
+  expect: [[3, Zq1n0s9m0k9h], [7, Zq0x8v1n8j1s], [11, Zq8n8v9t9j8y]]
+- name: users of a tier
+  sql: SELECT COUNT(*) FROM users WHERE tier = 'Zq8n8v9t9j8y'
+  expect: [[4]]
+- name: purchases per city
+  sql: SELECT u.city, COUNT(*) FROM users u JOIN purchases p ON p.user_id = u.id GROUP BY u.city
+  expect:
+    [[Zq0t9u8v8u1p, 6], [Zq8t1s9q9w9j, 5], [Zq9u9t9v0y0p, 3], [Zq1g0n1g0m8q, 6]]
+- name: spend per tier
+  sql: SELECT u.tier, SUM(p.total) FROM users u JOIN purchases p ON p.user_id = u.id GROUP BY u.tier
+  expect: [[Zq0x8v1n8j1s, 1892.95], [Zq8n8v9t9j8y, 3045.11], [Zq1n0s9m0k9h, 4268.85]]
+- name: spend per city
+  sql: SELECT u.city, SUM(p.total) FROM users u JOIN purchases p ON p.user_id = u.id GROUP BY u.city
+  expect:
+    [[Zq0t9u8v8u1p, 1573.66], [Zq8t1s9q9w9j, 2467.79], [Zq9u9t9v0y0p, 1032.51],
+     [Zq1g0n1g0m8q, 4132.95]]
+- name: tickets
+  sql: SELECT id, user_id FROM tickets
+  expect: [[1, 1], [2, 2]]
+- name: tickets per user
+  sql: SELECT u.id, COUNT(t.id) FROM users u JOIN tickets t ON t.user_id = u.id GROUP BY u.id
+  expect: [[1, 1], [2, 1]]
+- name: name of every user
+  sql: SELECT id, name FROM users
+  expect:
+    [[1, u1], [2, u2], [3, u3], [4, u4], [5, u5], [6, u6],
+     [7, u7], [8, u8], [9, u9], [10, u10], [11, u11], [12, u12]]
+  opaque: [1]
+- name: emails in a city
+  sql: SELECT id, email FROM users WHERE city = 'Zq1g0n1g0m8q'
+  expect: [[4, u4], [8, u8], [12, u12]]
+  opaque: [1]
+- name: buyers of large purchases
+  sql: SELECT p.id, u.name FROM purchases p JOIN users u ON u.id = p.user_id WHERE p.total > 750
+  expect: [[104, u10], [114, u12], [118, u12], [120, u8]]
+  opaque: [1]
+- name: is this email a user
+  sql: SELECT COUNT(*) FROM users WHERE email = 'zq1q1z9k9t8x@example.test'
+  expect: [[1]]
+- name: user by name
+  sql: SELECT id FROM users WHERE name = 'Zq0x0m0x9q1n Karpova'
+  expect: [[5]]
+- name: purchases by email
+  sql: SELECT COUNT(*) FROM purchases WHERE buyer_email = 'zq9n1y8n8j9z@example.test'
+  expect: [[3]]
+- name: user by phone
+  sql: SELECT COUNT(*) FROM users WHERE phone = 79311431782
+  expect: [[1]]

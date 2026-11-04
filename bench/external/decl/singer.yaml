@@ -1,0 +1,7 @@
+# Spider dev.
+db: singer
+set: spider
+entities:
+  - {table: singer, pk: singer_id}
+columns:
+  singer: {name: identifier, birth_year: quasi, citizenship: quasi, net_worth_millions: quasi}

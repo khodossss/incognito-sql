@@ -1,0 +1,7 @@
+# Spider dev.
+db: poker_player
+set: spider
+entities:
+  - {table: people, pk: people_id}
+columns:
+  people: {name: identifier, nationality: quasi, birth_date: quasi, height: quasi}

@@ -1,0 +1,28 @@
+# mcp-server-conceal 0.1.0 in front of DBHub 1.5.0, every DBMS and every set. Follows its
+# README "Configuration" (repo tag v0.1.0): its detection patterns as published there,
+# consistent fake values (faker, fixed seed, consistency on), mappings in a SQLite file in
+# the work directory. Detection mode `regex`: `llm` and `regex_llm` need an Ollama model
+# beside the proxy, which the bench does not run. The tool knows no column names: it
+# reads the answer's text, so this file is the same for every world.
+[detection]
+mode = "regex"
+enabled = true
+confidence_threshold = 0.8
+
+[detection.patterns]
+email = '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+phone = '\b(?:\+?1[-\.\s]?)?(?:\(?[0-9]{3}\)?[-\.\s]?)?[0-9]{3}[-\.\s]?[0-9]{4}\b'
+ssn = '\b\d{3}-\d{2}-\d{4}\b'
+credit_card = '\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b'
+ip_address = '\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b'
+url = 'https?://[^\s/$.?#].[^\s]*'
+
+[faker]
+locale = "en_US"
+seed = 12345
+consistency = true
+
+[mapping]
+database_path = "/audit/conceal-mappings.db"
+encryption = false
+retention_days = 90

@@ -1,0 +1,18 @@
+# Spider dev. A vote is a voter's phone number, state and time.
+db: voter_1
+set: spider
+entities:
+  - {table: contestants, pk: contestant_number}
+columns:
+  contestants: {contestant_name: identifier}
+  votes: {phone_number: identifier, state: quasi}
+conditions:
+  # The voter's personal detail is the phone number; the state follows from its area
+  # code, which the open AREA_CODE_STATE table gives anyway.
+  - text: All information is public except for the personal details of the voters.
+    columns: {votes: [phone_number]}
+  # A ballot is a row of VOTES: only the rows named stay; Kelly Clauss is contestant 3.
+  - text: Only Kelly Clauss' ballot situation is public.
+    rows: [{table: votes, hide: "*", where: "NOT (contestant_number = 3)"}]
+  - text: Only the ballot situation in California is public.
+    rows: [{table: votes, hide: "*", where: "NOT (state = 'CA')"}]

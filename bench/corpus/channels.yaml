@@ -1,0 +1,252 @@
+# The spec's own disclosure channels: implicit order, ORDER BY by number, cast errors,
+# statistics and catalogs, whole rows, EXPLAIN, cross-database names.
+- name: implicit order picks a row by value rank
+  sql: "SELECT name FROM users LIMIT 1"
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT id FROM users"
+  source: ours
+- name: implicit order of distinct values
+  sql: "SELECT DISTINCT email FROM users LIMIT 2"
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT id FROM users"
+  source: ours
+- name: implicit order of groups
+  sql: "SELECT buyer_email, COUNT(*) FROM purchases GROUP BY buyer_email"
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT DISTINCT lower(buyer_email) FROM purchases"
+  source: ours
+- name: order by identifier
+  sql: "SELECT id FROM users ORDER BY name"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: order by number of an identifier
+  sql: "SELECT id, name FROM users ORDER BY 2"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: order by number descending
+  sql: "SELECT id, email FROM users ORDER BY 2 DESC"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: order by alias of an identifier
+  sql: "SELECT name AS n FROM users ORDER BY n"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: order by identifier with collate
+  sql: "SELECT id FROM users ORDER BY name COLLATE NOCASE"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: order by number of an open column
+  sql: "SELECT id, name FROM users ORDER BY 1"
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT id FROM users"
+  source: ours
+- name: cast error from a text literal on a number identifier
+  sql: "SELECT id FROM users WHERE phone = 'not a number'"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: cast error from a number literal on a text identifier
+  sql: "SELECT id FROM users WHERE name = 5"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: explicit cast of an identifier
+  sql: "SELECT CAST(name AS INTEGER) AS n FROM users"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: cast of an identifier inside a predicate
+  sql: "SELECT id FROM users WHERE CAST(email AS INTEGER) = 1"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: cast error on an open column compared with a number
+  sql: "SELECT id FROM users WHERE tier = 1"
+  expect: safe
+  source: ours
+- name: pg_stats most common values
+  sql: "SELECT most_common_vals FROM pg_stats WHERE attname = 'email'"
+  expect: reject
+  reason: system_catalog
+  source: ours
+- name: pg_stats qualified
+  sql: "SELECT * FROM pg_catalog.pg_stats"
+  expect: reject
+  reason: system_catalog
+  source: ours
+- name: pg_statistic
+  sql: "SELECT * FROM pg_statistic"
+  expect: reject
+  reason: system_catalog
+  source: ours
+- name: information schema columns
+  sql: "SELECT column_name FROM information_schema.columns"
+  expect: reject
+  reason: system_catalog
+  source: ours
+- name: sqlite statistics table
+  sql: "SELECT * FROM sqlite_stat1"
+  expect: reject
+  reason: system_catalog
+  source: ours
+- name: sqlite master
+  sql: "SELECT sql FROM sqlite_master"
+  expect: reject
+  reason: system_catalog
+  source: ours
+- name: performance schema statement history
+  sql: "SELECT sql_text FROM performance_schema.events_statements_history"
+  expect: reject
+  reason: system_catalog
+  source: ours
+- name: sys objects
+  sql: "SELECT name FROM sys.objects"
+  expect: reject
+  reason: system_catalog
+  source: ours
+- name: duckdb column catalog
+  sql: "SELECT * FROM duckdb_columns()"
+  expect: reject
+  reason: system_catalog
+  source: ours
+- name: whole row by table alias
+  sql: "SELECT u FROM users u"
+  expect: reject
+  reason: unknown_column
+  source: ours
+- name: whole row as json
+  sql: "SELECT row_to_json(u) FROM users u"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: row constructor
+  sql: "SELECT ROW(name, email) FROM users"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: explain
+  sql: "EXPLAIN SELECT name FROM users"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: cross database name
+  sql: "SELECT name FROM otherdb.main.users"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: dblink
+  sql: "SELECT * FROM dblink('dbname=x', 'SELECT name FROM users') AS t(name text)"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: openrowset
+  sql: "SELECT * FROM OPENROWSET('SQLNCLI', 'Server=x;', 'SELECT name FROM users')"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: database error text on a hidden-free query
+  sql: "SELECT id FROM users WHERE id = 1 / 0"
+  expect: safe
+  source: ours
+- name: select star counts hidden columns
+  sql: "SELECT * FROM users"
+  expect: safe
+  source: ours
+- name: select star of a table with nothing visible
+  sql: "SELECT * FROM vault"
+  expect: safe
+  source: ours
+- name: free text column
+  sql: "SELECT body FROM tickets"
+  expect: reject
+  reason: hidden_column
+  source: ours
+- name: secret column in a predicate
+  sql: "SELECT id FROM users WHERE password_hash = 'x'"
+  expect: reject
+  reason: hidden_column
+  source: ours
+- name: undeclared column in a join
+  sql: "SELECT u.id FROM users u JOIN contacts c ON c.email = u.email"
+  expect: reject
+  reason: hidden_column
+  source: ours
+- name: like on an identifier
+  sql: "SELECT id FROM users WHERE email LIKE 'zq%'"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: range on an identifier
+  sql: "SELECT id FROM users WHERE phone > 97250000000"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: max of a number identifier
+  sql: "SELECT MAX(phone) FROM users"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: string_agg of an identifier
+  sql: "SELECT string_agg(name, ',') FROM users"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: window over an identifier
+  sql: "SELECT id, ROW_NUMBER() OVER (ORDER BY email) FROM users"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: having on an identifier
+  sql: "SELECT name FROM users GROUP BY name HAVING name <> 'x'"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: literal of a human on an identifier
+  sql: "SELECT id FROM users WHERE email IN ('someone@example.test', 'other@example.test')"
+  expect: safe
+  source: ours
+- name: join of two identifiers
+  sql: "SELECT u.id, p.total FROM users u JOIN purchases p ON p.buyer_email = u.email"
+  expect: safe
+  source: ours
+- name: join of an identifier with an open column
+  sql: "SELECT u.id FROM users u JOIN purchases p ON p.buyer_email = u.tier"
+  expect: reject
+  reason: pii_join_with_open
+  source: ours
+- name: count distinct identifier
+  sql: "SELECT COUNT(DISTINCT buyer_email) FROM purchases"
+  expect: safe
+  source: ours
+- name: own token on its identifier
+  sql: "SELECT id FROM users WHERE name = '{{TOKEN_OWN}}'"
+  expect: safe
+  source: ours
+- name: inject spellings then query the token
+  setup: "SELECT id FROM users WHERE name IN ({{SPELLINGS_OWN}})"
+  sql: "SELECT id FROM users WHERE name = '{{TOKEN_OWN}}'"
+  expect: answer
+  mode: web
+  source: ours
+- name: own token on another identifier
+  sql: "SELECT id FROM purchases WHERE buyer_email = '{{TOKEN_OWN}}'"
+  expect: safe
+  source: ours
+- name: foreign token
+  sql: "SELECT id FROM users WHERE name = '{{TOKEN_OTHER}}'"
+  expect: reject
+  reason: invalid_token
+  source: ours
+- name: token on an open column
+  sql: "SELECT id FROM users WHERE tier = '{{TOKEN_OWN}}'"
+  expect: safe
+  source: ours

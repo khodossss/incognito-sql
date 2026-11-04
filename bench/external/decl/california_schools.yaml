@@ -1,0 +1,21 @@
+# BIRD Mini-Dev. Administrators are named people; a school's own address and phone are
+# an institution's, not a person's.
+db: california_schools
+set: bird
+entities: []
+columns:
+  schools:
+    admfname1: identifier
+    admlname1: identifier
+    admemail1: identifier
+    admfname2: identifier
+    admlname2: identifier
+    admemail2: identifier
+    admfname3: identifier
+    admlname3: identifier
+    admemail3: identifier
+# School codes (CDS), zip codes, a school's street and phone only look personal.
+verified_open:
+  frpm: [cdscode]
+  satscores: [cds]
+  schools: [cdscode, street, streetabr, zip, mailstreet, mailstrabr, mailzip, phone]

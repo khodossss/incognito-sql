@@ -1,0 +1,7 @@
+# Spider dev.
+db: museum_visit
+set: spider
+entities:
+  - {table: visitor, pk: id}
+columns:
+  visitor: {name: identifier, age: quasi}

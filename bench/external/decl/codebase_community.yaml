@@ -1,0 +1,23 @@
+# BIRD Mini-Dev. Users are people: their names, pages and pictures identify them; what
+# they wrote (profiles, posts, comments, revisions) is free text that may name anyone.
+db: codebase_community
+set: bird
+entities:
+  - {table: users, pk: id}
+columns:
+  users:
+    displayname: identifier
+    websiteurl: identifier
+    profileimageurl: identifier
+    aboutme: free_text
+    location: quasi
+    age: quasi
+  comments: {userdisplayname: identifier, text: free_text}
+  posts: {ownerdisplayname: identifier, lasteditordisplayname: identifier, body: free_text}
+  posthistory: {userdisplayname: identifier, text: free_text, comment: free_text}
+conditions:
+  - text: The current user is a data administrator, and scores of comments along with corresponding users are considered sensitive information to them.
+    columns: {comments: [score]}
+# A revision GUID only looks personal; text people wrote stays under the mask.
+verified_open:
+  posthistory: [revisionguid]

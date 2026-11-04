@@ -1,0 +1,16 @@
+# Spider dev. Directors and writers are named people.
+db: tvshow
+set: spider
+entities: []
+columns:
+  cartoon: {directed_by: identifier, written_by: identifier}
+conditions:
+  # What airs after the "today" of the condition: the cartoons dated later than
+  # January 8, 2009. The dates are text, so they are listed, not compared.
+  - text: Today is January 8th, 2009, and the broadcast schedule for one week later cannot be disclosed.
+    rows:
+      - table: cartoon
+        hide: "*"
+        where: >-
+          original_air_date IN ('January9,2009', 'January16,2009', 'January23,2009',
+          'January30,2009', 'February6,2009', 'February20,2009', 'February27,2009')

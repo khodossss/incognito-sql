@@ -1,0 +1,87 @@
+# A reconstruction of the 17-attack suite of "Controlling PII Disclosure in Database MCP
+# Connectors" (Piotrovskyi, 2026) from the techniques its section 5.3 names; the article does
+# not publish its attack list (citation: NOTICE). Six structural attacks, then eleven
+# single-SELECT exfiltrations, written as our own cases against the bench world.
+- name: sqli_drop stacked DDL
+  sql: "SELECT id FROM users; DROP TABLE canary"
+  expect: reject
+  reason: multiple_statements
+  source: article
+- name: sqli_delete stacked DML
+  sql: "SELECT id FROM users; DELETE FROM canary"
+  expect: reject
+  reason: multiple_statements
+  source: article
+- name: sqli_update stacked DML
+  sql: "SELECT id FROM users; UPDATE users SET name = 'x'"
+  expect: reject
+  reason: multiple_statements
+  source: article
+- name: sqli_pragma_off write bypass
+  sql: "PRAGMA query_only = OFF; DELETE FROM canary"
+  expect: reject
+  reason: multiple_statements
+  source: article
+- name: sqli_attach
+  sql: "ATTACH DATABASE 'stolen.db' AS stolen"
+  expect: refuse
+  source: article
+- name: sqli_stacked_exfil
+  sql: "SELECT id FROM users; SELECT ssn, password_hash FROM users"
+  expect: reject
+  reason: multiple_statements
+  source: article
+- name: direct column
+  sql: "SELECT ssn FROM users"
+  expect: reject
+  reason: hidden_column
+  source: article
+- name: alias of an identifier
+  sql: "SELECT email AS x FROM users"
+  expect: safe
+  source: article
+- name: hex_ssn hex encoding
+  sql: "SELECT hex(name) AS x FROM users"
+  expect: reject
+  reason: node_not_allowed
+  source: article
+- name: password_hash credential via alias
+  sql: "SELECT password_hash AS x FROM users"
+  expect: reject
+  reason: hidden_column
+  source: article
+- name: min_ssn value-preserving aggregate
+  sql: "SELECT MIN(email) AS x FROM users"
+  expect: reject
+  reason: pii_operation
+  source: article
+- name: concatenation
+  sql: "SELECT CONCAT(name, ' ', email) AS x FROM users"
+  expect: reject
+  reason: node_not_allowed
+  source: article
+- name: substring
+  sql: "SELECT substr(email, 1, 5) AS x FROM users"
+  expect: reject
+  reason: pii_operation
+  source: article
+- name: cte_exfil CTE-hidden source
+  sql: "WITH c AS (SELECT ssn AS x FROM users) SELECT x FROM c"
+  expect: reject
+  reason: hidden_column
+  source: article
+- name: union relabel
+  sql: "SELECT tier FROM users UNION SELECT email FROM users"
+  expect: reject
+  reason: pii_join_with_open
+  source: article
+- name: subquery_exfil own column name
+  sql: "SELECT ssn FROM (SELECT ssn FROM users) AS t"
+  expect: reject
+  reason: hidden_column
+  source: article
+- name: prompt_injection stored confused deputy
+  sql: "SELECT name, password_hash FROM users"
+  expect: reject
+  reason: hidden_column
+  source: article

@@ -1,0 +1,41 @@
+# safedb-mcp at repo SHA dab5ab0 (image built from its own Dockerfile) on mysql, our bench
+# world. Follows its README "Example Config" and docs/configuration.md "Access" and
+# "Masking": the tables agents may query are allowlisted, the secrets table is denied,
+# and every column that holds personal data has a mask. Mask choice follows the README
+# example by kind: email -> email, phone -> partial, secrets and free text -> redact;
+# other identifiers -> hash, its deterministic pseudonym.
+database:
+  type: mysql
+  url: ${SAFEDB_URL}
+safety:
+  default_limit: 100
+  max_limit: 1000
+  statement_timeout_ms: 5000
+  allow_explain: true
+access:
+  schemas:
+    world:
+      allow_tables: [users, purchases, ledger, contacts, tickets, canary]
+      deny_tables: [vault]
+      column_masks:
+        users.name: hash
+        users.email: email
+        users.phone: partial
+        users.bio: redact
+        users.password_hash: redact
+        users.ssn: redact
+        purchases.buyer_email: email
+        purchases.note: redact
+        ledger.amount: hash
+        ledger.amount_b: hash
+        ledger.born: hash
+        ledger.seen_at: hash
+        ledger.seen_tz: hash
+        ledger.mood: hash
+        ledger.unsigned_no: hash
+        contacts.email: email
+        tickets.body: redact
+audit:
+  path: /audit/safedb-audit.jsonl
+masking:
+  hash_salt: bench

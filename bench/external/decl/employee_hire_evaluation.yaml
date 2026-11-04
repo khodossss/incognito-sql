@@ -1,0 +1,13 @@
+# Spider dev. Employees and shop managers are named people.
+db: employee_hire_evaluation
+set: spider
+entities:
+  - {table: employee, pk: employee_id}
+columns:
+  employee: {name: identifier, age: quasi, city: quasi}
+  shop: {manager_name: identifier}
+conditions:
+  - text: The annual prize amount is for privacy information.
+    columns: {evaluation: [bonus]}
+  - text: The current user is not authorized to view the number of products.
+    columns: {shop: [number_products]}

@@ -1,0 +1,78 @@
+# sanitized-db-mcp 0.2.0 on Postgres, our bench world. Made as its README says
+# ("Generating an Allowlist", repo SHA c1144d8): `sanitized-db-mcp generate-allowlist
+# --deny-pii` against the world, then the columns agents may see uncommented. Visible here
+# are the world's open and quasi columns, the same ones incognito-sql shows; every other
+# column stays hidden (placeholder), and `vault` is not listed at all. The function list
+# is the generator's default.
+tables:
+  canary:
+    columns:
+      id: {type: integer, placeholder: 0}
+  contacts:
+    columns:
+      id: {type: integer, placeholder: 0}
+  ledger:
+    columns:
+      id: {type: integer, placeholder: 0}
+      user_id: {type: integer, placeholder: 0}
+      Odd Name: {type: varchar, placeholder: "'[REDACTED]'"}
+  purchases:
+    columns:
+      id: {type: integer, placeholder: 0}
+      user_id: {type: integer, placeholder: 0}
+      total: {type: numeric, placeholder: 0.0}
+  tickets:
+    columns:
+      id: {type: integer, placeholder: 0}
+      user_id: {type: integer, placeholder: 0}
+  users:
+    columns:
+      id: {type: integer, placeholder: 0}
+      city: {type: varchar, placeholder: "'[REDACTED]'"}
+      tier: {type: varchar, placeholder: "'[REDACTED]'"}
+allowed_functions:
+  - COUNT
+  - SUM
+  - AVG
+  - MIN
+  - MAX
+  - BOOL_AND
+  - BOOL_OR
+  - ARRAY_AGG
+  - ARRAY_LENGTH
+  - STRING_AGG
+  - COALESCE
+  - NULLIF
+  - GREATEST
+  - LEAST
+  - NOW
+  - CURRENT_DATE
+  - CURRENT_TIMESTAMP
+  - DATE_TRUNC
+  - EXTRACT
+  - AGE
+  - DATE_PART
+  - UPPER
+  - LOWER
+  - LENGTH
+  - TRIM
+  - LTRIM
+  - RTRIM
+  - LEFT
+  - RIGHT
+  - REPLACE
+  - SUBSTRING
+  - POSITION
+  - CONCAT
+  - CONCAT_WS
+  - ROUND
+  - CEIL
+  - CEILING
+  - FLOOR
+  - ABS
+  - MOD
+  - POWER
+  - SQRT
+  - SIGN
+  - CAST
+  - GENERATE_SERIES

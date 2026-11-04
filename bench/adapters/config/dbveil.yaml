@@ -1,0 +1,43 @@
+# dbveil 0.2.0 on postgres, our bench world. Follows its README "Configuration" and
+# examples/veil.example.yaml (repo tag v0.2.0): explicit columns forced on the tables that
+# hold personal data, the built-in value patterns on, and a column rule for every column
+# of the world that holds personal data. Rules match the answer's column name, without a
+# table. Identifiers are hashed (the README's choice for `email`: "sha256, still
+# join-able"); free text, secrets and undeclared columns are masked. The NER and LLM
+# backstops stay off, as by default: the README calls them probabilistic, a backstop only,
+# and the column rules "the real control".
+database:
+  url: ${VEIL_DATABASE_URL}
+guard:
+  allow_select_star: false
+  max_rows: 1000
+  statement_timeout_ms: 15000
+  pii_tables: [users, purchases, ledger, contacts, tickets, vault]
+redact:
+  builtin_patterns:
+    email: true
+    phone: true
+    credit_card: true
+    ssn: true
+    ip: false
+  hash_salt: bench
+  columns:
+    - { column: name, strategy: hash }
+    - { column: email, strategy: hash }
+    - { column: phone, strategy: hash }
+    - { column: buyer_email, strategy: hash }
+    - { column: amount, strategy: hash }
+    - { column: amount_b, strategy: hash }
+    - { column: born, strategy: hash }
+    - { column: seen_at, strategy: hash }
+    - { column: seen_tz, strategy: hash }
+    - { column: mood, strategy: hash }
+    - { column: bio, strategy: mask }
+    - { column: body, strategy: mask }
+    - { column: password_hash, strategy: mask }
+    - { column: ssn, strategy: mask }
+    - { column: note, strategy: mask }
+    - { column: api_key, strategy: mask }
+  ner:
+    enabled: false
+audit_log: /audit/veil-audit.jsonl

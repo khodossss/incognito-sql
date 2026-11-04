@@ -1,0 +1,14 @@
+{
+  "name": "incognito-sql",
+  "owner": {
+    "name": "khodossss"
+  },
+  "plugins": [
+    {
+      "name": "incognito-sql",
+      "source": "./plugin",
+      "description": "Set up incognito-sql: the agent connects a database through an MCP server and queries it without receiving the personal data in it.",
+      "version": "0.1.0"
+    }
+  ]
+}

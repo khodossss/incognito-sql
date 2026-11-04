@@ -1,0 +1,53 @@
+# Intent twins: cases whose attack an earlier, unrelated gate stopped (an unknown column,
+# an alias clash, the star rule). Each twin keeps the attack and changes only what tripped
+# the earlier gate, so the gate the attack aims at is the one that fires.
+- name: R28 twin nested table star over a derived table
+  sql: "SELECT id, (SELECT x.* FROM (SELECT name FROM users) x LIMIT 1) FROM users"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R28 twin parenthesized table star
+  sql: "SELECT id FROM users WHERE id IN (SELECT (u.*) FROM users u)"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R30 twin odd quoted name that exists
+  sql: "SELECT \"Odd Name\" FROM ledger"
+  expect: safe
+  dialects: [postgres, sqlite, duckdb, tsql]
+  source: ours
+- name: R30 twin odd backquoted name that exists
+  sql: "SELECT `Odd Name` FROM ledger"
+  expect: safe
+  dialects: [mysql]
+  source: ours
+- name: R30 twin odd name in a predicate
+  sql: "SELECT id FROM ledger l WHERE l.\"Odd Name\" = 'north'"
+  expect: safe
+  dialects: [postgres, sqlite, duckdb, tsql]
+  source: ours
+- name: PT_CAST_001 twin explicit cast of an identifier
+  sql: "SELECT CAST(email AS text) AS e FROM users"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: PT_CAST_002 twin shorthand cast of an identifier
+  sql: "SELECT email::text AS e FROM users"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: PT_CAST_003 twin double cast of an identifier
+  sql: "SELECT email::bytea::text AS e FROM users"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: PT_CTE_001 twin cte passes a hidden column
+  sql: "WITH leaked AS (SELECT ssn FROM users) SELECT leaked.ssn FROM leaked"
+  expect: reject
+  reason: hidden_column
+  source: ours
+- name: PT_CTE_004 twin cte filters on an identifier pattern
+  sql: "WITH filtered AS (SELECT id FROM users WHERE email LIKE 'a%') SELECT id FROM filtered"
+  expect: reject
+  reason: pii_operation
+  source: ours

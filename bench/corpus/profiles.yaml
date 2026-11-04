@@ -1,0 +1,109 @@
+# Attacks on the query forms a wider profile admits: each holds in every profile.
+- name: window sum in a grouped select reads one row of the group
+  sql: SELECT city, SUM(id) OVER (PARTITION BY city) FROM users GROUP BY city
+  expect: reject
+  reason: node_not_allowed
+  profiles: [balanced, permissive]
+  source: ours
+- name: window numbering by an identifier
+  sql: SELECT ROW_NUMBER() OVER (ORDER BY name) FROM users
+  expect: refuse
+  profiles: [balanced]
+  source: ours
+- name: window partition by an identifier
+  sql: SELECT id, COUNT(*) OVER (PARTITION BY email) FROM users
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: ours
+- name: intersect an identifier with a literal
+  sql: SELECT name FROM users INTERSECT SELECT 'Zq Nobody'
+  expect: reject
+  reason: pii_join_with_open
+  profiles: [balanced, permissive]
+  source: ours
+- name: except an identifier with an open column
+  sql: SELECT email FROM users EXCEPT SELECT tier FROM users
+  expect: reject
+  reason: pii_join_with_open
+  profiles: [balanced, permissive]
+  source: ours
+- name: case sum returning an identifier
+  sql: SELECT SUM(CASE WHEN id = 1 THEN phone ELSE 0 END) FROM users
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: ours
+- name: computed sum over an identifier
+  sql: SELECT SUM(phone + 0) FROM users
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: ours
+- name: date function over an identifier
+  sql: SELECT strftime('%Y', name) FROM users
+  dialects: [sqlite]
+  expect: reject
+  reason: pii_operation
+  profiles: [balanced, permissive]
+  source: ours
+- name: double quoted identifier name stays a column
+  sql: SELECT "email" FROM users
+  dialects: [sqlite]
+  expect: answer
+  profiles: [balanced, permissive]
+  source: ours
+- name: union branch reusing an alias reads a hidden column
+  sql: SELECT u.id FROM users u UNION SELECT u.ssn FROM users u
+  expect: reject
+  reason: hidden_column
+  profiles: [balanced, permissive]
+  source: ours
+- name: one letter of an identifier through max in having
+  sql: SELECT id FROM users GROUP BY id HAVING substr(max(name), 1, 1) = 'Z'
+  expect: reject
+  reason: pii_operation
+  profiles: [balanced, permissive]
+  source: ours
+- name: one letter of an identifier through max in select
+  sql: SELECT substr(max(name), 1, 1) FROM users
+  expect: reject
+  reason: pii_operation
+  profiles: [balanced, permissive]
+  source: ours
+- name: one letter of an identifier in where
+  sql: SELECT id FROM users WHERE substr(name, 1, 1) = 'Z'
+  expect: reject
+  reason: pii_operation
+  profiles: [balanced, permissive]
+  source: ours
+- name: max of an identifier against an open column
+  sql: SELECT count(*) FROM users HAVING max(email) = max(tier)
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: ours
+- name: ordering an identifier against an open column
+  sql: SELECT id FROM users WHERE name > tier
+  expect: reject
+  reason: pii_operation
+  profiles: [balanced, permissive]
+  source: ours
+- name: matching an identifier with an open column as the pattern
+  sql: SELECT id FROM users WHERE name LIKE tier
+  expect: reject
+  reason: pii_operation
+  profiles: [balanced, permissive]
+  source: ours
+- name: a function over max of an identifier
+  sql: SELECT upper(max(email)) FROM users
+  expect: reject
+  reason: pii_operation
+  profiles: [balanced, permissive]
+  source: ours
+- name: length of an expression over an identifier
+  sql: SELECT length(name || 'x') FROM users
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: ours
+- name: distance between identifier values by a range frame
+  sql: SELECT id, count(*) OVER (ORDER BY phone RANGE BETWEEN 95 PRECEDING AND CURRENT ROW) FROM users
+  expect: refuse
+  profiles: [strict, balanced, permissive]
+  source: ours

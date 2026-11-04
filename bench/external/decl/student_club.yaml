@@ -1,0 +1,20 @@
+# BIRD Mini-Dev. Members are people; zip_code is an open reference table of places.
+db: student_club
+set: bird
+entities:
+  - {table: member, pk: member_id}
+columns:
+  member:
+    first_name: identifier
+    last_name: identifier
+    email: identifier
+    phone: identifier
+    zip: quasi
+    t_shirt_size: quasi
+conditions:
+  - text: The member's phone number is sensitive information
+    columns: {member: [phone]}
+  - text: The member's zipcode and address are sensitive information
+    columns: {member: [zip]}  # the member's only address column
+  - text: The size of a member's T-shirt is sensitive information
+    columns: {member: [t_shirt_size]}

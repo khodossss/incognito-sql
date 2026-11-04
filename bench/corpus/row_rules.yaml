@@ -1,0 +1,42 @@
+# Rules on rows (patients: patient 4 gone, patient 3's name and ward hidden). A hidden
+# ward is a canary of its own; a label that gives key 3 or 4 of patients leaks the
+# hidden row (bench.world.HIDDEN_KEYS).
+- name: labels of names a hidden row holds
+  sql: "SELECT id, patient_name FROM visits"
+  expect: answer
+  mode: labels
+  source: ours
+- name: labels of one hidden name
+  sql: "SELECT patient_name FROM visits WHERE id = 13"
+  expect: answer
+  mode: labels
+  source: ours
+- name: labels of the gone row's name
+  sql: "SELECT patient_name FROM visits WHERE id = 14"
+  expect: answer
+  mode: labels
+  source: ours
+- name: the table under rules as a whole
+  sql: "SELECT * FROM patients"
+  expect: answer
+  source: ours
+- name: wards of every patient
+  sql: "SELECT id, ward FROM patients ORDER BY id"
+  expect: answer
+  source: ours
+- name: a hidden ward through a join on the name
+  sql: "SELECT v.room, p.ward FROM visits v JOIN patients p ON p.full_name = v.patient_name"
+  expect: safe
+  source: ours
+- name: a hidden ward through a scalar subquery
+  sql: "SELECT (SELECT MAX(ward) FROM patients) AS w"
+  expect: safe
+  source: ours
+- name: a hidden ward by its first letters
+  sql: "SELECT id FROM patients WHERE ward LIKE 'Zq%'"
+  expect: safe
+  source: ours
+- name: the gone row counted
+  sql: "SELECT COUNT(*) FROM patients WHERE id = 4"
+  expect: safe
+  source: ours

@@ -1,0 +1,32 @@
+# sql-safe-mcp 1.5.2 on mysql, our bench world. Follows its README "Configure server" and
+# docs/configuration.md "All-PII-safe servers" / "PII rules" (repo SHA 9dd2a69): an
+# all_pii_safe alias with its own key, and every column that holds personal data listed
+# ("Only listed columns are protected, so list every column that holds personal data").
+# Listed: every column of the world that carries a hidden canary.
+version: 1
+servers:
+  bench:
+    engine: mysql
+    access_level: all_pii_safe
+    connection_url: "${BENCH_SQL_URL}"
+    pii_key_env: BENCH_PII_KEY
+    pii:
+      rules:
+        - database: "*"
+          table: users
+          columns: [name, email, phone, bio, password_hash, ssn]
+        - database: "*"
+          table: purchases
+          columns: [buyer_email, note]
+        - database: "*"
+          table: ledger
+          columns: [amount, amount_b, born, seen_at, seen_tz, cash, unsigned_no, mood]
+        - database: "*"
+          table: contacts
+          columns: [email]
+        - database: "*"
+          table: tickets
+          columns: [body]
+        - database: "*"
+          table: vault
+          columns: [api_key]

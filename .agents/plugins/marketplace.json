@@ -1,0 +1,20 @@
+{
+  "name": "incognito-sql",
+  "interface": {
+    "displayName": "incognito-sql"
+  },
+  "plugins": [
+    {
+      "name": "incognito-sql",
+      "source": {
+        "source": "local",
+        "path": "./plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

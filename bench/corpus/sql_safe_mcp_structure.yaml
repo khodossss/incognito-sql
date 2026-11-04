@@ -1,0 +1,499 @@
+# Attack corpus from sql-safe-mcp (constructs outside the SELECT subset), rewritten to the bench world.
+# Origin and license: NOTICE. Only names and SQL are taken; expectations are ours.
+- name: cte
+  sql: WITH x AS (SELECT id FROM users) SELECT id FROM x
+  expect: safe
+  source: sql-safe-mcp
+- name: recursive cte
+  sql: WITH x AS (SELECT 1 AS n UNION ALL SELECT n + 1 FROM x WHERE n < 100) SELECT n FROM x
+  expect: reject
+  reason: unknown_column
+  source: sql-safe-mcp
+- name: cte hiding table name
+  sql: WITH users AS (SELECT id, email FROM users) SELECT id FROM users
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: scalar subquery in select
+  sql: SELECT (SELECT TOP 1 email FROM users) FROM users
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT id FROM users"
+  dialects: [tsql]
+  source: sql-safe-mcp
+- name: subquery in where
+  sql: SELECT id FROM users WHERE id IN (SELECT id FROM purchases)
+  expect: safe
+  source: sql-safe-mcp
+- name: correlated subquery
+  sql: SELECT id FROM users u WHERE EXISTS (SELECT 1 FROM purchases o WHERE o.user_id = u.id)
+  expect: safe
+  source: sql-safe-mcp
+- name: derived table
+  sql: SELECT d.email FROM (SELECT email FROM users) AS d
+  expect: safe
+  source: sql-safe-mcp
+- name: derived table star
+  sql: SELECT * FROM (SELECT email AS id FROM users) AS d
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: union exfil
+  sql: SELECT id FROM users UNION SELECT id FROM purchases
+  expect: safe
+  source: sql-safe-mcp
+- name: union all relabel
+  sql: SELECT name FROM users UNION ALL SELECT email FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: intersect
+  sql: SELECT id FROM users INTERSECT SELECT id FROM purchases
+  expect: safe
+  source: sql-safe-mcp
+- name: except
+  sql: SELECT id FROM users EXCEPT SELECT id FROM purchases
+  expect: safe
+  source: sql-safe-mcp
+- name: parenthesized select
+  sql: (SELECT id FROM users)
+  expect: safe
+  source: sql-safe-mcp
+- name: parenthesized union
+  sql: (SELECT id FROM users) UNION (SELECT id FROM purchases)
+  expect: safe
+  source: sql-safe-mcp
+- name: values table constructor
+  sql: SELECT * FROM (VALUES (1), (2)) AS v(n)
+  expect: safe
+  source: sql-safe-mcp
+- name: table value constructor in from
+  sql: SELECT id FROM users, (VALUES (1)) AS v(n)
+  expect: safe
+  source: sql-safe-mcp
+- name: subquery as join source
+  sql: SELECT u.id FROM users u JOIN (SELECT id FROM purchases) o ON u.id = o.id
+  expect: safe
+  source: sql-safe-mcp
+- name: cross apply function
+  sql: SELECT u.id FROM users u CROSS APPLY dbo.F(u.id) f
+  expect: safe
+  source: sql-safe-mcp
+- name: outer apply subquery
+  sql: SELECT u.id FROM users u OUTER APPLY (SELECT TOP 1 * FROM purchases) o
+  expect: refuse
+  source: sql-safe-mcp
+- name: pivot
+  sql: SELECT * FROM users PIVOT (COUNT(id) FOR name IN ([a])) p
+  expect: safe
+  source: sql-safe-mcp
+- name: unpivot exfil
+  sql: SELECT * FROM users UNPIVOT (v FOR c IN (name, email)) u
+  expect: safe
+  source: sql-safe-mcp
+- name: nolock hint
+  sql: SELECT id FROM users WITH (NOLOCK)
+  expect: safe
+  source: sql-safe-mcp
+- name: index hint
+  sql: SELECT id FROM users WITH (INDEX(1))
+  expect: safe
+  source: sql-safe-mcp
+- name: forceseek
+  sql: SELECT id FROM users WITH (FORCESEEK)
+  expect: safe
+  source: sql-safe-mcp
+- name: readpast
+  sql: SELECT id FROM users WITH (READPAST)
+  expect: safe
+  source: sql-safe-mcp
+- name: option recompile
+  sql: SELECT id FROM users OPTION (RECOMPILE)
+  expect: safe
+  source: sql-safe-mcp
+- name: option maxdop
+  sql: SELECT id FROM users OPTION (MAXDOP 1)
+  expect: safe
+  source: sql-safe-mcp
+- name: option use hint
+  sql: SELECT id FROM users OPTION (USE HINT('DISABLE_PARAMETER_SNIFFING'))
+  expect: safe
+  source: sql-safe-mcp
+- name: join hint
+  sql: SELECT u.id FROM users u INNER HASH JOIN purchases o ON u.id = o.id
+  expect: safe
+  source: sql-safe-mcp
+- name: tablesample
+  sql: SELECT id FROM users TABLESAMPLE (10 PERCENT)
+  expect: safe
+  source: sql-safe-mcp
+- name: system time
+  sql: SELECT id FROM users FOR SYSTEM_TIME ALL
+  expect: safe
+  source: sql-safe-mcp
+- name: for xml
+  sql: SELECT id FROM users FOR XML AUTO
+  expect: refuse
+  source: sql-safe-mcp
+- name: for xml path exfil
+  sql: SELECT email FROM users FOR XML PATH('')
+  expect: refuse
+  source: sql-safe-mcp
+- name: for json
+  sql: SELECT id FROM users FOR JSON AUTO
+  expect: refuse
+  source: sql-safe-mcp
+- name: right join
+  sql: SELECT u.id FROM users u RIGHT JOIN purchases o ON u.id = o.user_id
+  expect: safe
+  source: sql-safe-mcp
+- name: full join
+  sql: SELECT u.id FROM users u FULL OUTER JOIN purchases o ON u.id = o.user_id
+  expect: safe
+  source: sql-safe-mcp
+- name: cross join
+  sql: SELECT u.id FROM users u CROSS JOIN purchases o
+  expect: safe
+  source: sql-safe-mcp
+- name: implicit comma join
+  sql: SELECT u.id FROM users u, purchases o WHERE u.id = o.user_id
+  expect: safe
+  source: sql-safe-mcp
+- name: join without on
+  sql: SELECT u.id FROM users u JOIN purchases o
+  expect: safe
+  source: sql-safe-mcp
+- name: join using
+  sql: SELECT u.id FROM users u JOIN purchases o USING (id)
+  expect: safe
+  source: sql-safe-mcp
+- name: natural join
+  sql: SELECT u.id FROM users u NATURAL JOIN purchases o
+  expect: safe
+  source: sql-safe-mcp
+- name: local variable
+  sql: SELECT @v
+  expect: refuse
+  source: sql-safe-mcp
+- name: system variable
+  sql: SELECT @@version
+  expect: refuse
+  source: sql-safe-mcp
+- name: variable in predicate
+  sql: SELECT id FROM users WHERE id = @v
+  expect: refuse
+  source: sql-safe-mcp
+- name: table variable
+  sql: SELECT id FROM @t
+  expect: safe
+  source: sql-safe-mcp
+- name: temp table
+  sql: 'SELECT id FROM #t'
+  expect: refuse
+  source: sql-safe-mcp
+- name: global temp table
+  sql: 'SELECT id FROM ##t'
+  expect: refuse
+  source: sql-safe-mcp
+- name: bracketed temp table
+  sql: SELECT id FROM [#t]
+  expect: refuse
+  source: sql-safe-mcp
+- name: named parameter
+  sql: SELECT id FROM users WHERE id = :id
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: qmark placeholder
+  sql: SELECT id FROM users WHERE id = ?
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: percent format placeholder
+  sql: SELECT id FROM users WHERE name = %s
+  expect: refuse
+  source: sql-safe-mcp
+- name: dynamic exec concat
+  sql: SELECT id FROM users WHERE id = 1; EXEC('SELECT ' + 'email FROM users')
+  expect: refuse
+  source: sql-safe-mcp
+- name: sp_executesql call
+  sql: SELECT id FROM users WHERE id IN (EXEC sp_executesql N'SELECT 1')
+  expect: reject
+  reason: parse_error
+  source: sql-safe-mcp
+- name: goto label
+  sql: SELECT id FROM users; GOTO x
+  expect: reject
+  reason: multiple_statements
+  source: sql-safe-mcp
+- name: scalar function
+  sql: SELECT LOWER(name) FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: upper on protected
+  sql: SELECT UPPER(email) FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: len on protected
+  sql: SELECT LEN(email) FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: substring on protected
+  sql: SELECT SUBSTRING(email, 1, 1) FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: left on protected
+  sql: SELECT LEFT(email, 3) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: checksum on protected
+  sql: SELECT CHECKSUM(email) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: hashbytes on protected
+  sql: SELECT HASHBYTES('SHA2_256', email) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: user defined function
+  sql: SELECT dbo.F(id) FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: user defined function in where
+  sql: SELECT id FROM users WHERE dbo.F(id) = 1
+  expect: safe
+  source: sql-safe-mcp
+- name: system function
+  sql: SELECT SUSER_SNAME()
+  expect: safe
+  source: sql-safe-mcp
+- name: db_name
+  sql: SELECT DB_NAME()
+  expect: safe
+  source: sql-safe-mcp
+- name: getdate
+  sql: SELECT GETDATE()
+  expect: safe
+  source: sql-safe-mcp
+- name: newid
+  sql: SELECT NEWID()
+  expect: safe
+  source: sql-safe-mcp
+- name: sum
+  sql: SELECT SUM(id) FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: min on protected
+  sql: SELECT MIN(email) FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: max on protected
+  sql: SELECT MAX(phone) FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: avg
+  sql: SELECT AVG(id) FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: count column
+  sql: SELECT COUNT(email) FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: count distinct
+  sql: SELECT COUNT(DISTINCT email) FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: count with group by
+  sql: SELECT email, COUNT(*) FROM users GROUP BY email
+  expect: safe
+  source: sql-safe-mcp
+- name: count with having
+  sql: SELECT COUNT(*) FROM users HAVING COUNT(*) > 1
+  expect: safe
+  source: sql-safe-mcp
+- name: string agg
+  sql: SELECT STRING_AGG(email, ',') FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: distinct
+  sql: SELECT DISTINCT email FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: window function
+  sql: SELECT ROW_NUMBER() OVER (ORDER BY email) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: window partition
+  sql: SELECT COUNT(*) OVER (PARTITION BY email) FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: json value
+  sql: SELECT JSON_VALUE(name, '$.a') FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: xml method
+  sql: SELECT name.value('(/a)[1]', 'int') FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: case expression
+  sql: SELECT CASE WHEN id = 1 THEN 'a' ELSE 'b' END FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: iif
+  sql: SELECT IIF(id = 1, 1, 0) FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: coalesce
+  sql: SELECT COALESCE(email, 'x') FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: isnull
+  sql: SELECT ISNULL(email, 'x') FROM users
+  expect: refuse
+  source: sql-safe-mcp
+- name: nullif
+  sql: SELECT NULLIF(email, 'x') FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: cast
+  sql: SELECT CAST(id AS varchar(10)) FROM users
+  expect: answer
+  source: sql-safe-mcp
+- name: convert
+  sql: SELECT CONVERT(varchar(10), id) FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: arithmetic
+  sql: SELECT id + 1 FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: string concat
+  sql: SELECT name + email FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: bitwise
+  sql: SELECT id & 1 FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: like predicate
+  sql: SELECT id FROM users WHERE name LIKE 'a%'
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: like on protected
+  sql: SELECT id FROM users WHERE email LIKE 'a%'
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: between
+  sql: SELECT id FROM users WHERE id BETWEEN 1 AND 2
+  expect: safe
+  source: sql-safe-mcp
+- name: not predicate
+  sql: SELECT id FROM users WHERE NOT id = 1
+  expect: safe
+  source: sql-safe-mcp
+- name: is not null
+  sql: SELECT id FROM users WHERE name IS NOT NULL
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: exists predicate
+  sql: SELECT id FROM users WHERE EXISTS (SELECT 1)
+  expect: safe
+  source: sql-safe-mcp
+- name: any predicate
+  sql: SELECT id FROM users WHERE id = ANY (SELECT id FROM purchases)
+  expect: safe
+  source: sql-safe-mcp
+- name: top percent
+  sql: SELECT TOP 10 PERCENT id FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: top with ties
+  sql: SELECT TOP 1 WITH TIES id FROM users ORDER BY id
+  expect: safe
+  source: sql-safe-mcp
+- name: top expression
+  sql: SELECT TOP (1 + 1) id FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: top variable
+  sql: SELECT TOP (@n) id FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: top negative
+  sql: SELECT TOP -1 id FROM users
+  expect: refuse
+  source: sql-safe-mcp
+- name: offset fetch
+  sql: SELECT id FROM users ORDER BY id OFFSET 5 ROWS FETCH NEXT 5 ROWS ONLY
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: order by ordinal
+  sql: SELECT id, name FROM users ORDER BY 2
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: order by expression
+  sql: SELECT id FROM users ORDER BY id + 1
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: order by function
+  sql: SELECT id FROM users ORDER BY LOWER(name)
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: order by collate
+  sql: SELECT id FROM users ORDER BY name COLLATE Latin1_General_BIN
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: collate in predicate
+  sql: SELECT id FROM users WHERE name COLLATE Latin1_General_BIN = 'a'
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: is with non-null
+  sql: SELECT id FROM users WHERE name IS 1
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: star comparison
+  sql: SELECT id FROM users WHERE * = 1
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: select without from expression
+  sql: SELECT 1 + 1
+  expect: safe
+  source: sql-safe-mcp
+- name: string literal concatenation
+  sql: SELECT 'a' + 'b'
+  expect: safe
+  source: sql-safe-mcp
+- name: typed literal
+  sql: SELECT CAST('x' AS int)
+  expect: safe
+  source: sql-safe-mcp

@@ -1,0 +1,9 @@
+# Spider dev. A head of state is a named person.
+db: world_1
+set: spider
+entities: []
+columns:
+  country: {headofstate: identifier}
+# A country's population in the billions reads as a long number.
+verified_open:
+  country: [population]

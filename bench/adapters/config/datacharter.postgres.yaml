@@ -1,0 +1,21 @@
+# DataCharter 0.44.0, our bench world on Postgres. Follows its docs/charter-yaml.md (repo tag
+# v0.44.0): one source over the world, every table listed, and every column that holds
+# personal data or is left undeclared for incognito-sql under `pii`, so its agent sees
+# `•••` there and cannot name it in WHERE, JOIN, GROUP BY or ORDER BY. The password is a
+# `${NAME}` reference, as its loader demands; a file world is mounted under /data.
+version: 1
+sources:
+  bench:
+    type: postgres
+    connection: {host: localhost, port: 5432, database: world, user: bench_reader, schema: public}
+    credentials: {password: '${BENCH_DB_PASSWORD}'}
+    tables: [users, purchases, ledger, contacts, tickets, vault, canary]
+    pii:
+      users: [name, email, phone, bio, password_hash, ssn]
+      purchases: [buyer_email, note]
+      ledger: [amount, amount_b, born, seen_at, seen_tz, mood]
+      contacts: [email]
+      tickets: [body]
+      vault: [api_key]
+    agent_access:
+      tables: {vault: false, canary: false}

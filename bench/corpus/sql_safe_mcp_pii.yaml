@@ -1,0 +1,393 @@
+# Attack corpus from sql-safe-mcp (PII policy and token attacks), rewritten to the bench world.
+# Origin and license: NOTICE. Only names and SQL are taken; expectations are ours.
+- name: order by alias of protected column
+  sql: SELECT email AS id FROM users ORDER BY id
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: order by alias shadowing another column
+  sql: SELECT phone AS name, name AS phone FROM users ORDER BY name
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: order by duplicate label ambiguity
+  sql: SELECT id AS email, email FROM users ORDER BY email
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: order by alias of count
+  sql: SELECT COUNT(*) AS n FROM users ORDER BY n
+  expect: safe
+  source: sql-safe-mcp
+- name: order by qualified protected
+  sql: SELECT u.id FROM users u ORDER BY u.email
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: order by second key protected
+  sql: SELECT id FROM users ORDER BY id, email
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: order by bracketed protected
+  sql: SELECT id FROM users ORDER BY [email]
+  expect: refuse
+  source: sql-safe-mcp
+- name: order by mixed case protected
+  sql: SELECT id FROM users ORDER BY eMaIl DESC
+  expect: refuse
+  source: sql-safe-mcp
+- name: unknown alias qualifier
+  sql: SELECT x.email FROM users u
+  expect: reject
+  reason: unknown_column
+  source: sql-safe-mcp
+- name: table name qualifier when aliased
+  sql: SELECT users.email FROM users u
+  expect: reject
+  reason: unknown_column
+  source: sql-safe-mcp
+- name: ambiguous unqualified protected column
+  sql: SELECT email FROM users u JOIN contacts c ON u.id = c.id
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: duplicate table alias
+  sql: SELECT u.id FROM users u JOIN purchases u ON u.id = u.id
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: alias differing only by case
+  sql: SELECT a.id FROM users a JOIN purchases A ON a.id = A.id
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: same table twice without alias
+  sql: SELECT id FROM users JOIN users ON 1 = 1
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: star with unknown qualifier
+  sql: SELECT x.* FROM users u
+  expect: reject
+  reason: unknown_column
+  source: sql-safe-mcp
+- name: ambiguous unqualified table
+  sql: SELECT id FROM items
+  expect: reject
+  reason: unknown_column
+  source: sql-safe-mcp
+- name: unknown column
+  sql: SELECT Missing FROM users
+  expect: reject
+  reason: unknown_column
+  source: sql-safe-mcp
+- name: column of another table
+  sql: SELECT buyer_email FROM users
+  expect: reject
+  reason: unknown_column
+  source: sql-safe-mcp
+- name: order by alias case variant
+  sql: SELECT email AS [id] FROM users ORDER BY [ID]
+  expect: refuse
+  source: sql-safe-mcp
+- name: order by alias equal to real column name
+  sql: SELECT email AS name, id FROM users ORDER BY name
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: order by alias of protected via qualified select
+  sql: SELECT u.phone AS id FROM users u ORDER BY id
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: order by alias of protected in join
+  sql: SELECT u.email AS id FROM users u JOIN purchases o ON o.user_id = u.id ORDER BY id
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: order by alias through star free projection with self join
+  sql: SELECT b.email AS id FROM users a JOIN users b ON a.id = b.id ORDER BY id
+  expect: reject
+  reason: ambiguous_column
+  source: sql-safe-mcp
+- name: order by protected column of database scoped rule
+  sql: SELECT id FROM purchases ORDER BY buyer_email
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: plaintext equality
+  sql: SELECT id FROM users WHERE email = 'a@example.test'
+  expect: safe
+  source: sql-safe-mcp
+- name: plaintext in list
+  sql: SELECT id FROM users WHERE email IN ('a@example.test')
+  expect: safe
+  source: sql-safe-mcp
+- name: mixed in list token and plaintext
+  sql: SELECT id FROM users WHERE email IN ('{{TOKEN_OWN}}', 'plain')
+  expect: safe
+  source: sql-safe-mcp
+- name: numeric equality on protected
+  sql: SELECT id FROM users WHERE phone = 5551234
+  expect: safe
+  source: sql-safe-mcp
+- name: negative numeric equality on protected
+  sql: SELECT id FROM users WHERE phone = -1
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: not equal
+  sql: SELECT id FROM users WHERE email <> '{{TOKEN_OWN}}'
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: not equal bang
+  sql: SELECT id FROM users WHERE email != '{{TOKEN_OWN}}'
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: greater than
+  sql: SELECT id FROM users WHERE email > '{{TOKEN_OWN}}'
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: less or equal
+  sql: SELECT id FROM users WHERE phone <= '{{TOKEN_OWN}}'
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: is null on protected
+  sql: SELECT id FROM users WHERE email IS NULL
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: equals null literal
+  sql: SELECT id FROM users WHERE email = NULL
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: in list with null
+  sql: SELECT id FROM users WHERE email IN ('{{TOKEN_OWN}}', NULL)
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: token on the left of equals
+  sql: SELECT id FROM users WHERE '{{TOKEN_OWN}}' = email
+  expect: safe
+  source: sql-safe-mcp
+- name: protected column on the right
+  sql: SELECT id FROM users WHERE name = email
+  expect: safe
+  source: sql-safe-mcp
+- name: protected against protected
+  sql: SELECT id FROM users WHERE email = phone
+  expect: reject
+  reason: literal_type_mismatch
+  source: sql-safe-mcp
+- name: self comparison
+  sql: SELECT id FROM users WHERE email = email
+  expect: safe
+  source: sql-safe-mcp
+- name: parenthesized protected column
+  sql: SELECT id FROM users WHERE (email) = '{{TOKEN_OWN}}'
+  expect: safe
+  source: sql-safe-mcp
+- name: parenthesized projection
+  sql: SELECT (email) FROM users
+  expect: answer
+  source: sql-safe-mcp
+- name: parenthesized projection under alias
+  sql: SELECT (email) AS e FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: doubly parenthesized projection under alias
+  sql: SELECT ((email)) AS e FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: parenthesized plain column under alias
+  sql: SELECT (id) AS i FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: equality expression projected under alias
+  sql: SELECT (email = 'x') AS hit FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: range expression projected under alias
+  sql: SELECT (email > 'm') AS x FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: in list projected under alias
+  sql: SELECT (email IN ('a', 'b')) AS x FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: is null projected under alias
+  sql: SELECT (email IS NULL) AS x FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: token comparison projected under alias
+  sql: SELECT (email = '{{TOKEN_OWN}}') AS hit FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: negated protected column
+  sql: SELECT -phone FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: protected join key
+  sql: SELECT u.id FROM users u JOIN users v ON u.email = v.email
+  expect: safe
+  source: sql-safe-mcp
+- name: protected join key across tables
+  sql: SELECT u.id FROM users u JOIN purchases o ON u.phone = o.buyer_email
+  expect: reject
+  reason: literal_type_mismatch
+  source: sql-safe-mcp
+- name: left join on protected
+  sql: SELECT u.id FROM users u LEFT JOIN contacts c ON u.email = c.email
+  expect: reject
+  reason: hidden_column
+  source: sql-safe-mcp
+- name: protected column in join on with literal
+  sql: SELECT u.id FROM users u JOIN purchases o ON o.user_id = u.id AND u.email = '{{TOKEN_OWN}}'
+  expect: safe
+  source: sql-safe-mcp
+- name: protected in join on is null
+  sql: SELECT u.id FROM users u JOIN purchases o ON u.email IS NULL
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: protected case
+  sql: SELECT CASE WHEN email = 'x' THEN 1 END FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: protected cast
+  sql: SELECT CAST(email AS varchar(3)) FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: protected convert
+  sql: SELECT CONVERT(varchar(3), phone) FROM users
+  expect: refuse
+  source: sql-safe-mcp
+- name: protected function in where
+  sql: SELECT id FROM users WHERE LEN(email) = 5
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: protected in count column
+  sql: SELECT COUNT(email) FROM users
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: protected in group by
+  sql: SELECT email FROM users GROUP BY email
+  expect: safe
+  source: sql-safe-mcp
+- name: token in select list
+  sql: SELECT '{{TOKEN_OWN}}' FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: token compared with unprotected column
+  sql: SELECT id FROM users WHERE name = '{{TOKEN_OWN}}'
+  expect: safe
+  source: sql-safe-mcp
+- name: token in unprotected table with same column name
+  sql: SELECT id FROM contacts WHERE email = '{{TOKEN_OWN}}'
+  expect: reject
+  reason: hidden_column
+  source: sql-safe-mcp
+- name: token in like
+  sql: SELECT id FROM users WHERE email LIKE '{{TOKEN_OWN}}'
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: token in between
+  sql: SELECT id FROM users WHERE email BETWEEN '{{TOKEN_OWN}}' AND '{{TOKEN_OWN}}'
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: token in top
+  sql: SELECT TOP '{{TOKEN_OWN}}' id FROM users
+  expect: reject
+  reason: parse_error
+  source: sql-safe-mcp
+- name: token in second protected table column predicate
+  sql: SELECT o.id FROM purchases o WHERE o.buyer_email > '{{TOKEN_OWN}}'
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: token concatenated
+  sql: SELECT id FROM users WHERE email = '{{TOKEN_OWN}}' + 'x'
+  expect: reject
+  reason: pii_operation
+  source: sql-safe-mcp
+- name: token national literal
+  sql: SELECT id FROM users WHERE email = N'{{TOKEN_OWN}}'
+  expect: safe
+  source: sql-safe-mcp
+- name: cross alias token
+  sql: SELECT id FROM users WHERE email = '{{TOKEN_OTHER}}'
+  expect: reject
+  reason: invalid_token
+  source: sql-safe-mcp
+- name: cross alias token in list
+  sql: SELECT id FROM users WHERE email IN ('{{TOKEN_OWN}}', '{{TOKEN_OTHER}}')
+  expect: reject
+  reason: invalid_token
+  source: sql-safe-mcp
+- name: malformed token
+  sql: SELECT id FROM users WHERE email = 'tk_AAAA'
+  expect: safe
+  source: sql-safe-mcp
+- name: empty token body
+  sql: SELECT id FROM users WHERE email = 'tk_'
+  expect: safe
+  source: sql-safe-mcp
+- name: wrong version
+  sql: SELECT id FROM users WHERE email = 'tk2_{{TOKEN_BODY}}'
+  expect: safe
+  source: sql-safe-mcp
+- name: prefix only different case
+  sql: SELECT id FROM users WHERE email = 'TK_{{TOKEN_BODY}}'
+  expect: safe
+  source: sql-safe-mcp
+- name: truncated token
+  sql: SELECT id FROM users WHERE email = '{{TOKEN_TRUNCATED}}'
+  expect: safe
+  source: sql-safe-mcp
+- name: bit flipped token
+  sql: SELECT id FROM users WHERE email = '{{TOKEN_FLIPPED}}'
+  expect: reject
+  reason: invalid_token
+  source: sql-safe-mcp
+- name: padded token
+  sql: SELECT id FROM users WHERE email = '{{TOKEN_OWN}}='
+  expect: safe
+  source: sql-safe-mcp
+- name: token with whitespace
+  sql: SELECT id FROM users WHERE email = '{{TOKEN_OWN}} '
+  expect: safe
+  source: sql-safe-mcp
+- name: token with unicode suffix
+  sql: "SELECT id FROM users WHERE email = '{{TOKEN_OWN}}\xE9'"
+  expect: safe
+  source: sql-safe-mcp
+- name: oversized token
+  sql: SELECT id FROM users WHERE email = 'tk_{{PAD_CHAR:A:5000}}'
+  expect: safe
+  source: sql-safe-mcp
+- name: standard base64 alphabet token
+  sql: SELECT id FROM users WHERE email = '{{TOKEN_STD_ALPHABET}}'
+  expect: safe
+  source: sql-safe-mcp
+- name: token of a different key same alias name
+  sql: SELECT id FROM users WHERE email = '{{TOKEN_OTHER_KEY_SAME_ALIAS}}'
+  expect: reject
+  reason: invalid_token
+  source: sql-safe-mcp

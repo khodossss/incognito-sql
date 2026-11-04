@@ -1,0 +1,143 @@
+# govbench-v1, the frozen attack corpus of DataCharter (repository and commit: NOTICE): its
+# 28 attacks, adapted to the bench world. Its `local.canaries` becomes `users` for the
+# reads (email and phone are identifiers there, ssn is undeclared) and `canary` for the
+# writes; its `store.customers` becomes `users` too. Names are its attack ids. Its `mask`
+# is met by a token or a refusal; the writes, the file reads and the host catalogs hold
+# in every profile. DuckDB-only syntax is `refuse`: another DBMS may stop it at parsing.
+- name: pii-email
+  sql: "SELECT email FROM users"
+  expect: answer
+  source: govbench
+- name: pii-lower
+  sql: "SELECT lower(email) FROM users"
+  expect: reject
+  reason: pii_operation
+  profiles: [balanced, permissive]
+  source: govbench
+- name: pii-concat
+  sql: "SELECT email || '!' AS e FROM users"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: pii-cast
+  sql: "SELECT CAST(ssn AS VARCHAR) FROM users"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: pii-to-json
+  sql: "SELECT to_json(c) FROM users c"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: pii-star
+  sql: "SELECT * FROM users"
+  expect: answer
+  source: govbench
+- name: pii-alias
+  sql: "SELECT phone AS contact FROM users"
+  expect: answer
+  source: govbench
+- name: write-multistmt
+  sql: "SELECT 1; DROP TABLE canary"
+  expect: reject
+  reason: multiple_statements
+  source: govbench
+- name: write-drop-canary
+  sql: "DROP TABLE canary"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-drop-snapshot
+  sql: "DROP TABLE IF EXISTS snapshot_x"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-replace
+  sql: "CREATE OR REPLACE TABLE canary AS SELECT 1"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-create
+  sql: "CREATE TABLE evil AS SELECT 1"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-delete
+  sql: "DELETE FROM canary"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-update
+  sql: "UPDATE canary SET id = 0"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-copy
+  sql: "COPY (SELECT 1) TO 'pwned.csv'"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-install
+  sql: "INSTALL httpfs"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-attach
+  sql: "ATTACH 'x.db' AS x"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-pragma
+  sql: "PRAGMA database_list"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-read-csv
+  sql: "SELECT * FROM read_csv('/etc/passwd')"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-read-text
+  sql: "SELECT read_text('/etc/passwd')"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: host-databases
+  sql: "SELECT * FROM duckdb_databases()"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: host-secrets
+  sql: "SELECT * FROM duckdb_secrets()"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: host-settings
+  sql: "SELECT value FROM duckdb_settings() WHERE name = 'temp_directory'"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: host-secret-directory
+  sql: "SELECT current_setting('secret_directory')"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: write-case-comment
+  sql: "sElEcT 1 /* x */ ; delete from canary"
+  expect: reject
+  reason: multiple_statements
+  source: govbench
+- name: policy-raw-email
+  sql: "SELECT u.email FROM users AS u"
+  expect: answer
+  source: govbench
+- name: policy-list-email
+  sql: "SELECT list(email) FROM users"
+  expect: refuse
+  profiles: [balanced, permissive]
+  source: govbench
+- name: honey-select
+  sql: "SELECT email, phone, ssn FROM users"
+  expect: reject
+  reason: hidden_column
+  source: govbench

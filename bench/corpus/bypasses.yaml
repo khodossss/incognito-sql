@@ -1,0 +1,207 @@
+# One case per bypass closed while the server was built (rulings R25-R35, R60, R61 and
+# their follow-ups R67, R68): tiebreak, ORDER BY keys, star places, aggregate ownership,
+# alias shadowing, LIMIT/TOP subqueries, cross-family identifier comparison.
+- name: R25 limit over grouped identifiers
+  sql: "SELECT email FROM users GROUP BY email LIMIT 1"
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT DISTINCT lower(email) FROM users"
+  source: ours
+- name: R25 offset over distinct identifiers in a subquery
+  sql: "SELECT d.id FROM (SELECT DISTINCT id, name FROM users LIMIT 3 OFFSET 1) AS d"
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT id FROM users"
+  dialects: [postgres, sqlite, mysql, duckdb]
+  source: ours
+- name: R25 top over distinct identifiers in a subquery
+  sql: "SELECT d.id FROM (SELECT DISTINCT TOP 3 id, name FROM users) AS d"
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT id FROM users"
+  dialects: [tsql]
+  source: ours
+- name: R25 scalar subquery picks the lowest identifier
+  sql: "SELECT (SELECT p.buyer_email FROM purchases p LIMIT 1) FROM users"
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT DISTINCT lower(buyer_email) FROM purchases"
+  source: ours
+- name: R26 projection alias shadows an identifier
+  sql: "SELECT id AS name FROM users ORDER BY name"
+  expect: reject
+  reason: ambiguous_column
+  source: ours
+- name: R26 cte named like a table
+  sql: "WITH users AS (SELECT id FROM purchases) SELECT id FROM users"
+  expect: reject
+  reason: ambiguous_column
+  source: ours
+- name: R26 cte column alias shadows an identifier in a scalar subquery
+  sql: "WITH u AS (SELECT city AS name FROM users) SELECT (SELECT upper(u.name)) FROM users AS u"
+  expect: reject
+  reason: ambiguous_column
+  source: ours
+- name: R26 nested order by alias shadows an input column
+  sql: "SELECT (SELECT p.id AS buyer_email FROM purchases p ORDER BY buyer_email LIMIT 1) FROM users"
+  expect: reject
+  reason: ambiguous_column
+  source: ours
+- name: R27 order by expression over an alias
+  sql: "SELECT city AS name FROM users ORDER BY upper(name)"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R27 order by parenthesized number
+  sql: "SELECT id, name FROM users ORDER BY (2)"
+  expect: reject
+  reason: pii_operation
+  source: ours
+- name: R27 order by negative number
+  sql: "SELECT id, name FROM users ORDER BY -2"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R27 order by number shifted by a star
+  sql: "SELECT *, id FROM users ORDER BY 2"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R27 order by comparison on an identifier
+  sql: "SELECT id, id AS name FROM users ORDER BY substring(name, 1, 1) = 'A' DESC, id"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R28 nested table star as a whole row
+  sql: "SELECT (SELECT u.* FROM users u WHERE u.id = 1)"
+  expect: reject
+  reason: unknown_column
+  source: ours
+- name: R28 count of a table star
+  sql: "SELECT COUNT(u.*) FROM users u"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R28 star over a derived table
+  sql: "SELECT * FROM (SELECT name FROM users) AS d"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R29 distinct with limit is reordered
+  sql: "SELECT DISTINCT name, city FROM users ORDER BY city LIMIT 2"
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT name FROM users WHERE city = (SELECT MIN(city) FROM users)"
+  dialects: [sqlite, postgres, duckdb]
+  source: ours
+- name: R29 distinct with limit under a case-blind collation
+  sql: "SELECT DISTINCT name, city FROM users ORDER BY city LIMIT 2"
+  expect: reject
+  reason: equal_spellings
+  dialects: [mysql, tsql]
+  source: ours
+- name: R29 union of identifiers is reordered
+  sql: "SELECT email FROM users UNION SELECT buyer_email FROM purchases"
+  expect: answer
+  order_sensitive: true
+  pool: "SELECT DISTINCT lower(email) FROM users"
+  source: ours
+- name: R30 odd quoted name
+  sql: "SELECT \"id; DROP TABLE canary\" FROM users"
+  expect: safe
+  source: ours
+- name: R32 bare column next to an aggregate
+  sql: "SELECT id, COUNT(*) FROM users"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R32 non-grouped column in a grouped select
+  sql: "SELECT city, id FROM users GROUP BY city"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R32 correlated read of a non-grouped column
+  sql: "SELECT COUNT(*) AS n, (SELECT q.name FROM users q WHERE q.id = u.id) AS v FROM users u"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R33 overflowing sum reveals scan order
+  sql: "SELECT sum(CASE WHEN id = 3 THEN 1e308 ELSE -1e308 END) FROM users"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R33 overflowing average through a derived column
+  sql: "SELECT avg(d.x) FROM (SELECT (id - 5.5) * 1e307 AS x FROM users) AS d"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R33 overflowing sum through a cte
+  sql: "WITH d AS (SELECT (id - 5.5) * 1e307 AS x FROM users) SELECT sum(d.x) FROM d"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R35 aggregate over an output alias
+  sql: "SELECT city AS c, COUNT(*) AS n FROM users GROUP BY city ORDER BY max(c)"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R35 aggregate owned by the outer query
+  sql: "SELECT (SELECT COUNT((SELECT u.name)) FROM purchases p WHERE p.id = 101) FROM users u"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R35 nested order by aggregate of an outer alias
+  sql: "SELECT (SELECT u.id AS x FROM purchases p WHERE p.id = 101 ORDER BY COUNT(x)) AS c, u.id FROM users u"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+- name: R60 limit by an identifier value
+  sql: "SELECT id FROM purchases LIMIT (SELECT phone FROM users WHERE id = 1)"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+  dialects: [postgres, sqlite, mysql, duckdb]
+- name: R60 offset by a subquery
+  sql: "SELECT id FROM purchases LIMIT 1 OFFSET (SELECT 1)"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+  dialects: [postgres, sqlite, mysql, duckdb]
+- name: R60 computed limit
+  sql: "SELECT id FROM purchases LIMIT 1+1"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+  dialects: [postgres, sqlite, mysql, duckdb]
+- name: R60 top by an identifier value
+  sql: "SELECT TOP (SELECT phone FROM users WHERE id = 1) id FROM purchases"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+  dialects: [tsql]
+- name: R61 number identifier against a text identifier
+  sql: "SELECT id FROM users u WHERE u.phone = u.name"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: R61 cross-family join of identifiers
+  sql: "SELECT p.id FROM purchases p JOIN users u ON u.phone = p.buyer_email"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: R61 cross-family IN subquery
+  sql: "SELECT id FROM users WHERE phone IN (SELECT buyer_email FROM purchases)"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: R67 union mixes type families of an identifier
+  sql: "SELECT phone FROM users UNION ALL SELECT name FROM users"
+  expect: reject
+  reason: literal_type_mismatch
+  source: ours
+- name: R68 offset without limit
+  sql: "SELECT id FROM users ORDER BY id OFFSET 1"
+  expect: reject
+  reason: node_not_allowed
+  source: ours
+  dialects: [sqlite]

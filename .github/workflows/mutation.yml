@@ -1,0 +1,47 @@
+name: mutation
+
+# Mutation testing of the protective modules ([tool.mutmut] in pyproject.toml): every
+# mutant is a small break of the protection; a survivor is a break the tests would miss.
+# Linux only (mutmut forks). Weekly; not part of the PR gate.
+on:
+  schedule:
+    - cron: "41 2 * * 6"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Survivors of the last triaged run: equivalent mutants and dead code; more is a new gap.
+  MAX_SURVIVORS: 192
+  UV_PYTHON: "3.13"
+  UV_PYTHON_PREFERENCE: only-managed  # uv's own build: its SQLite is the one the tests expect
+
+concurrency:
+  group: mutation
+  cancel-in-progress: false
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked --all-extras
+      - name: Mutants of the protective modules
+        run: uv run --with mutmut==3.8.1 mutmut run --max-children 4
+      - name: Survivors and the kill rate
+        if: always()
+        run: |
+          uv run --with mutmut==3.8.1 mutmut results > mutation-results.txt || true
+          cat mutation-results.txt
+          survivors=$(grep -c ': survived$' mutation-results.txt || true)
+          echo "survivors: $survivors (allowed $MAX_SURVIVORS)"
+          test "$survivors" -le "$MAX_SURVIVORS"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-results
+          path: mutation-results.txt
+          if-no-files-found: ignore

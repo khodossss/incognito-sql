@@ -1,0 +1,23 @@
+{
+  "maxRows": 1000,
+  "statementTimeoutMs": 10000,
+  "hiddenColumns": ["password_hash", "ssn", "note", "api_key"],
+  "maskedColumns": [
+    {"column": "name", "strategy": "full"},
+    {"column": "email", "strategy": "full"},
+    {"column": "phone", "strategy": "full"},
+    {"column": "buyer_email", "strategy": "full"},
+    {"column": "bio", "strategy": "full"},
+    {"column": "body", "strategy": "full"},
+    {"column": "amount", "strategy": "full"},
+    {"column": "amount_b", "strategy": "full"},
+    {"column": "born", "strategy": "full"},
+    {"column": "seen_at", "strategy": "full"},
+    {"column": "seen_tz", "strategy": "full"},
+    {"column": "cash", "strategy": "full"},
+    {"column": "huge", "strategy": "full"},
+    {"column": "unsigned_no", "strategy": "full"},
+    {"column": "mood", "strategy": "full"}
+  ],
+  "blockedTables": ["vault", "canary"]
+}

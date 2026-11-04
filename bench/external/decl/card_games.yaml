@@ -1,0 +1,13 @@
+# BIRD Mini-Dev. A card's artist is a named person.
+db: card_games
+set: bird
+entities: []
+columns:
+  cards: {artist: identifier}
+# Card ids, uuids and shop links only look personal (digit runs read as card numbers).
+verified_open:
+  cards: [mtgjsonv4id, otherfaceids, purchaseurls, scryfallid, scryfallillustrationid,
+    scryfalloracleid, uuid, variations]
+  foreign_data: [uuid]
+  legalities: [uuid]
+  rulings: [uuid]

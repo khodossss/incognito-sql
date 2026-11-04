@@ -1,0 +1,7 @@
+# Spider dev.
+db: network_1
+set: spider
+entities:
+  - {table: highschooler, pk: id}
+columns:
+  highschooler: {name: identifier, grade: quasi}

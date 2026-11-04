@@ -1,0 +1,32 @@
+# Spider dev. Addresses are the students' current and permanent addresses.
+db: student_transcripts_tracking
+set: spider
+entities:
+  - {table: students, pk: student_id}
+columns:
+  students:
+    first_name: identifier
+    middle_name: identifier
+    last_name: identifier
+    cell_mobile_number: identifier
+    email_address: identifier
+    ssn: identifier
+    other_student_details: free_text
+  addresses:
+    line_1: identifier
+    line_2: identifier
+    line_3: identifier
+    city: quasi
+    zip_postcode: quasi
+    state_province_county: quasi
+    country: quasi
+    other_address_details: free_text
+conditions:
+  - text: Student course ID is sensitive information
+    columns: {student_enrolment_courses: [student_course_id], transcript_contents: [student_course_id]}
+  - text: The student's email address is sensitive information
+    columns: {students: [email_address]}
+  - text: The student's mobile phone number is sensitive information
+    columns: {students: [cell_mobile_number]}
+  - text: The student's transcript ID is sensitive information
+    columns: {transcripts: [transcript_id], transcript_contents: [transcript_id]}

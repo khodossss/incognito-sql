@@ -1,0 +1,43 @@
+name: bench
+
+# The full leakage benchmark: every tool on every DBMS it supports, and random queries.
+# Not part of the PR gate (that runs only the SQLite smoke test). The LLM red team and the
+# real-client sessions need a Claude subscription and run locally before a release.
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  UV_PYTHON: "3.13"  # the version the gate, the matrix and the benchmark ran on
+
+concurrency:
+  group: bench
+  cancel-in-progress: false
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300  # benchmark and 15000 random queries
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - name: Benchmark (corpus, utility tasks, five DBMS, competitors)
+        env:
+          BENCH_CACHE: ${{ runner.temp }}/bench-cache
+        run: uv run poe bench --markdown --workdir "${{ runner.temp }}/bench"
+      - name: Random queries on five DBMS (a new seed each run; findings fail the job)
+        if: always()
+        run: uv run python -m bench.fuzz.run --count 3000 --seed ${{ github.run_number }} --out fuzz-findings.yaml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-report
+          path: |
+            docs/benchmark.md
+            fuzz-findings.yaml
+          if-no-files-found: ignore

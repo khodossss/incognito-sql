@@ -1,0 +1,33 @@
+# BIRD Mini-Dev. Drivers are named people: the reference, the code and the encyclopedia
+# page are made of the name.
+db: formula_1
+set: bird
+entities:
+  - {table: drivers, pk: driverid}
+columns:
+  drivers:
+    forename: identifier
+    surname: identifier
+    driverref: identifier
+    code: identifier
+    url: identifier
+    dob: quasi
+    nationality: quasi
+conditions:
+  # The driver ID is the same value in every table that refers to a driver.
+  - text: Driver ID is sensitive information
+    columns:
+      drivers: [driverid]
+      results: [driverid]
+      laptimes: [driverid]
+      pitstops: [driverid]
+      qualifying: [driverid]
+      driverstandings: [driverid]
+  - text: The driver's date of birth is private information
+    columns: {drivers: [dob]}
+  # The one asking is no driver the gateway knows: every car number is someone else's.
+  - text: For a driver, they can only check their own car number and not the car numbers of other drivers
+    columns: {drivers: [number]}
+  # Lewis Hamilton is driver 1.
+  - text: Lewis chose to hide his date of birth, so his date of birth cannot be found by others
+    rows: [{table: drivers, hide: [dob], where: "driverid = 1"}]

@@ -1,0 +1,10 @@
+# BIRD Mini-Dev. Players are named people.
+db: european_football_2
+set: bird
+entities:
+  - {table: player, pk: id}
+columns:
+  player: {player_name: identifier, birthday: quasi, height: quasi, weight: quasi}
+# A season such as 2008/2009 reads as a phone number.
+verified_open:
+  match: [season]

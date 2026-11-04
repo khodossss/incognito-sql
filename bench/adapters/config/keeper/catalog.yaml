@@ -1,0 +1,48 @@
+# keeper 0.0.7 on Postgres, our bench world: the reviewed catalog its README's "Set up a
+# connection" ends with (`catalog init` proposes, a human reviews, the file is committed),
+# in its format (internal/catalog/yaml.go, policies of internal/types/policy.go, read at
+# repo SHA c898050). Every column is classified. Open and quasi columns: allow. Identifiers:
+# token, so they still join, group and count distinct; the three email columns share one
+# namespace, as joinable columns must. Secrets and free text: redact. Undeclared columns
+# and the undeclared table: drop, the nearest to "not there" a catalog can say.
+version: 1
+schemas:
+  public:
+    users:
+      id: {policy: allow}
+      name: {policy: token, namespace: name}
+      email: {policy: token, namespace: email}
+      phone: {policy: token, namespace: phone}
+      city: {policy: allow}
+      tier: {policy: allow}
+      bio: {policy: redact}
+      password_hash: {policy: redact}
+      ssn: {policy: drop}
+    purchases:
+      id: {policy: allow}
+      user_id: {policy: allow}
+      buyer_email: {policy: token, namespace: email}
+      total: {policy: allow}
+      note: {policy: drop}
+    ledger:
+      id: {policy: allow}
+      user_id: {policy: allow}
+      amount: {policy: token, namespace: amount}
+      amount_b: {policy: token, namespace: amount_b}
+      born: {policy: token, namespace: born}
+      seen_at: {policy: token, namespace: seen_at}
+      seen_tz: {policy: token, namespace: seen_tz}
+      mood: {policy: token, namespace: mood}
+      Odd Name: {policy: allow}
+    contacts:
+      id: {policy: allow}
+      email: {policy: drop}
+    tickets:
+      id: {policy: allow}
+      user_id: {policy: allow}
+      body: {policy: redact}
+    vault:
+      id: {policy: drop}
+      api_key: {policy: drop}
+    canary:
+      id: {policy: drop}

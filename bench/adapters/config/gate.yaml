@@ -1,0 +1,43 @@
+# gate 0.11.6 (`gate mcp` in front of DBHub 1.5.0), our bench world, every DBMS. Follows
+# its docs/configuration.md "Config schema" and THREAT-MODEL.md "Recommended configuration
+# for stricter enforcement" (repo tag v0.11.6): the built-in name classifier and value
+# patterns stay on, and every column of the world that holds personal data is listed in
+# `column_denylist` ("100% guarantee for configured columns"). The list is by column
+# name, since gate matches the JSON key of the answer and knows no table.
+# `wildcard_policy` and `tools` apply to its Bash path only (Gate 1); `gate mcp` runs
+# Gate 2 alone. Logs go to the mounted work directory (GATE_STATS_PATH, GATE_LOG_PATH).
+enabled: true
+pii:
+  action: redact
+  wildcard_policy: reject
+  column_denylist:
+    - name
+    - email
+    - phone
+    - bio
+    - password_hash
+    - ssn
+    - buyer_email
+    - note
+    - amount
+    - amount_b
+    - born
+    - seen_at
+    - seen_tz
+    - cash
+    - huge
+    - unsigned_no
+    - mood
+    - body
+    - api_key
+  confidence_threshold: 0.8
+  redaction: "[PII:{type}]"
+  include_summary: true
+  # The documented choice for an agent that must tell people apart ("correlate records
+  # across rows without seeing the underlying data"): [PII:<type>:<8 hex>] per value.
+  hash_values: true
+  hash_salt: bench
+mcp:
+  redact_tool_results: true
+stats:
+  enabled: true

@@ -1,0 +1,7 @@
+# Spider dev.
+db: pets_1
+set: spider
+entities:
+  - {table: student, pk: stuid}
+columns:
+  student: {lname: identifier, fname: identifier, age: quasi, sex: quasi, city_code: quasi}

@@ -1,0 +1,414 @@
+# Attack corpus from sql-safe-mcp (syntax-level attacks), rewritten to the bench world.
+# Origin and license: NOTICE. Only names and SQL are taken; expectations are ours.
+- name: stacked drop
+  sql: SELECT id FROM users; DROP TABLE canary
+  expect: reject
+  reason: multiple_statements
+  source: sql-safe-mcp
+- name: stacked delete leading
+  sql: DELETE FROM canary; SELECT id FROM users
+  expect: reject
+  reason: multiple_statements
+  source: sql-safe-mcp
+- name: stacked with block comment before separator
+  sql: SELECT id FROM users /**/;/**/ DROP TABLE canary
+  expect: reject
+  reason: multiple_statements
+  source: sql-safe-mcp
+- name: stacked with line comment newline
+  sql: 'SELECT id FROM users --
+
+    ; DROP TABLE canary'
+  expect: reject
+  reason: multiple_statements
+  source: sql-safe-mcp
+- name: nested block comment hides statement
+  sql: SELECT id FROM users /* /* */ ; DROP TABLE canary /* */
+  expect: refuse
+  source: sql-safe-mcp
+- name: nested comment leaks into generated sql
+  sql: SELECT id /* /* */ FROM users WHERE name = 'p*/ ; DROP TABLE canary; --'
+  expect: safe
+  source: sql-safe-mcp
+- name: go batch separator
+  sql: 'SELECT id FROM users
+
+    GO
+
+    DROP TABLE canary'
+  expect: reject
+  reason: parse_error
+  source: sql-safe-mcp
+- name: multiple semicolons then statement
+  sql: SELECT id FROM users;;; DROP TABLE canary
+  expect: reject
+  reason: multiple_statements
+  source: sql-safe-mcp
+- name: semicolon prefix statement
+  sql: ; DROP TABLE canary; SELECT id FROM users
+  expect: reject
+  reason: multiple_statements
+  source: sql-safe-mcp
+- name: select with trailing exec
+  sql: SELECT id FROM users; EXEC xp_cmdshell 'dir'
+  expect: refuse
+  source: sql-safe-mcp
+- name: comment only
+  sql: -- SELECT id FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: mysql style comment
+  sql: 'SELECT id FROM users # ; DROP TABLE canary'
+  expect: safe
+  source: sql-safe-mcp
+- name: unterminated block comment
+  sql: SELECT id FROM users /* ; DROP TABLE canary
+  expect: safe
+  source: sql-safe-mcp
+- name: unterminated string
+  sql: SELECT id FROM users WHERE name = 'x; DROP TABLE canary
+  expect: safe
+  source: sql-safe-mcp
+- name: string terminator injection
+  sql: SELECT id FROM users WHERE name = 'x'; DROP TABLE canary; --'
+  expect: refuse
+  source: sql-safe-mcp
+- name: empty
+  sql: ''
+  expect: safe
+  source: sql-safe-mcp
+- name: whitespace only
+  sql: " \n\t "
+  expect: safe
+  source: sql-safe-mcp
+- name: null byte in statement
+  sql: "SELECT id FROM users;\0 DROP TABLE canary"
+  expect: reject
+  reason: parse_error
+  source: sql-safe-mcp
+- name: fullwidth select keyword
+  sql: "\uFF33\uFF25\uFF2C\uFF25\uFF23\uFF34 id FROM users"
+  expect: safe
+  source: sql-safe-mcp
+- name: zero width space in keyword
+  sql: "SEL\u200BECT id FROM users"
+  expect: safe
+  source: sql-safe-mcp
+- name: bidi override in identifier
+  sql: "SELECT [id\u202E] FROM users"
+  expect: refuse
+  source: sql-safe-mcp
+- name: dotless i column
+  sql: "SELECT \u0131d FROM users"
+  expect: reject
+  reason: unknown_column
+  source: sql-safe-mcp
+- name: kelvin sign table name
+  sql: "SELECT id FROM \u212Ausers"
+  expect: reject
+  reason: unknown_column
+  source: sql-safe-mcp
+- name: bracket escape breakout
+  sql: SELECT [id]] FROM users; DROP TABLE canary; --] FROM users
+  expect: refuse
+  source: sql-safe-mcp
+- name: quoted identifier with semicolon
+  sql: SELECT [id; DROP TABLE canary] FROM users
+  expect: refuse
+  source: sql-safe-mcp
+- name: double quoted identifier breakout
+  sql: SELECT "id""; DROP TABLE canary; --" FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: bracket table named like keyword
+  sql: SELECT id FROM [users; DROP TABLE canary]
+  expect: refuse
+  source: sql-safe-mcp
+- name: nul in bracket identifier
+  sql: "SELECT [id\0] FROM users"
+  expect: refuse
+  source: sql-safe-mcp
+- name: nchar literal predicate on unprotected column with breakout
+  sql: SELECT id FROM users WHERE name = N'x'; DROP TABLE canary
+  expect: reject
+  reason: multiple_statements
+  source: sql-safe-mcp
+- name: hex literal
+  sql: SELECT 0x44524f50 FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: unicode escape style string
+  sql: SELECT U&'\0041' FROM users
+  expect: safe
+  source: sql-safe-mcp
+- name: emoji identifier
+  sql: "SELECT [\U0001F600] FROM users"
+  expect: refuse
+  source: sql-safe-mcp
+- name: cross database three part
+  sql: SELECT id FROM other.dbo.users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: cross database bracketed
+  sql: SELECT id FROM [other].[dbo].[users]
+  expect: refuse
+  source: sql-safe-mcp
+- name: four part linked server
+  sql: SELECT id FROM ls.other.dbo.users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: four part bracketed
+  sql: SELECT id FROM [ls].[other].[dbo].[users]
+  expect: refuse
+  source: sql-safe-mcp
+- name: master system table
+  sql: SELECT name FROM master.sys.databases
+  expect: reject
+  reason: system_catalog
+  source: sql-safe-mcp
+- name: sys schema
+  sql: SELECT name FROM sys.objects
+  expect: reject
+  reason: system_catalog
+  source: sql-safe-mcp
+- name: information schema
+  sql: SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+  expect: reject
+  reason: system_catalog
+  source: sql-safe-mcp
+- name: sys columns lookup
+  sql: SELECT name FROM sys.columns
+  expect: reject
+  reason: system_catalog
+  source: sql-safe-mcp
+- name: syslogins
+  sql: SELECT name FROM master..syslogins
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: tempdb object
+  sql: SELECT * FROM tempdb.dbo.Foo
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: dbo schema on missing table
+  sql: SELECT id FROM dbo.DoesNotExist
+  expect: reject
+  reason: unknown_column
+  source: sql-safe-mcp
+- name: current database qualified with wrong schema
+  sql: SELECT id FROM nosuchschema.users
+  expect: reject
+  reason: unknown_column
+  source: sql-safe-mcp
+- name: column with catalog path
+  sql: SELECT other.dbo.users.id FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: openrowset
+  sql: SELECT * FROM OPENROWSET('SQLNCLI', 'Server=x;', 'SELECT 1')
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: openrowset bulk
+  sql: SELECT * FROM OPENROWSET(BULK 'C:\\x.txt', SINGLE_CLOB) AS t
+  expect: reject
+  reason: parse_error
+  source: sql-safe-mcp
+- name: openquery
+  sql: SELECT * FROM OPENQUERY(ls, 'SELECT 1')
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: opendatasource
+  sql: SELECT * FROM OPENDATASOURCE('SQLNCLI', 'Data Source=x').db.dbo.t
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: openxml
+  sql: SELECT * FROM OPENXML(1, '/x')
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: at at linked exec
+  sql: EXEC ('SELECT 1') AT ls
+  expect: refuse
+  source: sql-safe-mcp
+- name: select into new table
+  sql: SELECT id INTO new_table FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: select into temp
+  sql: 'SELECT id INTO #t FROM users'
+  expect: refuse
+  source: sql-safe-mcp
+- name: insert select
+  sql: INSERT INTO canary SELECT id FROM users
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: update
+  sql: UPDATE canary SET id = 1
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: delete
+  sql: DELETE FROM canary
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: merge
+  sql: MERGE canary AS t USING users AS s ON t.id = s.id WHEN MATCHED THEN DELETE
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: truncate
+  sql: TRUNCATE TABLE canary
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: drop
+  sql: DROP TABLE canary
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: create
+  sql: CREATE TABLE X (id int)
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: alter
+  sql: ALTER TABLE canary ADD X int
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: grant
+  sql: GRANT SELECT ON users TO public
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: exec proc
+  sql: EXEC sp_who
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: exec dynamic string
+  sql: EXEC ('DROP TABLE canary')
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: execute keyword
+  sql: EXECUTE sp_executesql N'DROP TABLE canary'
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: xp cmdshell
+  sql: EXEC xp_cmdshell 'whoami'
+  expect: refuse
+  source: sql-safe-mcp
+- name: backup
+  sql: BACKUP DATABASE app TO DISK = 'x'
+  expect: reject
+  reason: parse_error
+  source: sql-safe-mcp
+- name: use database
+  sql: USE master
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: set option
+  sql: SET NOCOUNT ON
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: begin transaction
+  sql: BEGIN TRAN
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: waitfor
+  sql: WAITFOR DELAY '0:0:30'
+  expect: reject
+  reason: parse_error
+  source: sql-safe-mcp
+- name: shutdown
+  sql: SHUTDOWN
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: declare and select
+  sql: DECLARE @x int = 1; SELECT @x
+  expect: refuse
+  source: sql-safe-mcp
+- name: raiserror
+  sql: RAISERROR('x', 16, 1)
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: print
+  sql: PRINT 'x'
+  expect: refuse
+  source: sql-safe-mcp
+- name: select with output clause style
+  sql: SELECT id FROM users OUTPUT INSERTED.id
+  expect: safe
+  source: sql-safe-mcp
+- name: next value for sequence
+  sql: SELECT NEXT VALUE FOR dbo.Seq
+  expect: refuse
+  source: sql-safe-mcp
+- name: for update lock
+  sql: SELECT id FROM users FOR UPDATE
+  expect: refuse
+  source: sql-safe-mcp
+- name: for browse
+  sql: SELECT id FROM users FOR BROWSE
+  expect: safe
+  source: sql-safe-mcp
+- name: cte wrapping insert
+  sql: WITH x AS (SELECT id FROM users) INSERT INTO canary SELECT id FROM x
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: cte wrapping delete
+  sql: WITH x AS (SELECT id FROM users) DELETE FROM canary
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: cte wrapping update
+  sql: WITH x AS (SELECT id FROM users) UPDATE canary SET id = 1
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: select into temp table
+  sql: 'SELECT id INTO #t FROM users'
+  expect: refuse
+  source: sql-safe-mcp
+- name: exec behind leading comment
+  sql: /* SELECT */ EXEC xp_cmdshell 'whoami'
+  expect: refuse
+  source: sql-safe-mcp
+- name: exec behind line comment
+  sql: '-- SELECT id
+
+    EXEC xp_cmdshell ''whoami'''
+  expect: refuse
+  source: sql-safe-mcp
+- name: pg sleep
+  sql: SELECT pg_sleep(10)
+  expect: safe
+  source: sql-safe-mcp
+- name: nextval
+  sql: SELECT nextval('seq')
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
+- name: set config
+  sql: SELECT set_config('x', 'y', false)
+  expect: reject
+  reason: node_not_allowed
+  source: sql-safe-mcp
