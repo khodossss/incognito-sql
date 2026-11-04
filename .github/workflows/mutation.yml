@@ -2,10 +2,9 @@ name: mutation
 
 # Mutation testing of the protective modules ([tool.mutmut] in pyproject.toml): every
 # mutant is a small break of the protection; a survivor is a break the tests would miss.
-# Linux only (mutmut forks). Weekly; not part of the PR gate.
+# Linux only (mutmut forks). Started by hand when the protection logic changes; not part
+# of the PR gate.
 on:
-  schedule:
-    - cron: "41 2 * * 6"
   workflow_dispatch:
 
 permissions:

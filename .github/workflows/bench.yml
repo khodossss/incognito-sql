@@ -1,11 +1,10 @@
 name: bench
 
 # The full leakage benchmark: every tool on every DBMS it supports, and random queries.
-# Not part of the PR gate (that runs only the SQLite smoke test). The LLM red team and the
-# real-client sessions need a Claude subscription and run locally before a release.
+# Not part of the PR gate (that runs only the SQLite smoke test); started by hand when it is
+# needed. The LLM red team and the real-client sessions need a Claude subscription and run
+# locally when the protection logic changes.
 on:
-  schedule:
-    - cron: "17 3 * * 1"
   workflow_dispatch:
 
 permissions:
