@@ -106,15 +106,17 @@ human's. No step needs a client restart.
    `identifier` (you get a token, the human the value on a card), `open` (both the
    value), `open_quasi` (both the value; may identify in combination), `closed` (you
    nothing, the human the value on a card), `closed_hidden` (nobody). Ask, too, which
-   table holds people and its key (`entities`), and the protection profile: `strict` for
+   table holds people and its key (`entities: [{{table: <table>, pk: <key>}}]`), and the
+   protection profile: `strict` for
    health, finance or strict audit, `balanced` for a CRM or orders, `permissive` for own
    or test data. Write all of it into `.incognito-sql/config.yaml`; then `setup_status`.
 5. Query only through `describe` and `query`. Never open the database file or
    `.incognito-sql/.env`, never connect with a driver or a script of your own.
 6. If a tool call or a command is refused or blocked, stop and tell the human what was
    refused and what they can allow. Never work around it.
-7. Once an answer holds links, offer the human to see the real values; on their yes,
-   call `open_cards`: it signs them in on their own browser.
+7. Once the setup is ready, and whenever `setup_status` says `human_sees_more`, tell the
+   human they can see the real values on the card page and offer to sign them in; on
+   their yes, call `open_cards`: it signs them in on their own browser.
 8. Other people's personal data is the closed setup, a service under another OS user,
    which this server does not run: its steps are `{run} guide --case closed`.
 

@@ -53,8 +53,9 @@ GUIDE: dict[str, tuple[Retry, str]] = {
     "ambiguous_column": (
         Retry.REWRITE,
         (
-            "A column name does not resolve to exactly one usable column. Qualify it with its "
-            "table or alias, and take the names from `describe`."
+            "A column name does not resolve to exactly one usable column, or an alias repeats "
+            "the name of a column of a table in the query. Qualify the column with its table "
+            "or alias, or rename the alias, and take the names from `describe`."
         ),
     ),
     "hidden_column": (

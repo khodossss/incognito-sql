@@ -8,6 +8,20 @@ All notable changes to incognito-sql are listed here. The format follows
 are when the stage was finished. Numbers from the benchmark are in
 [docs/benchmark.md](docs/benchmark.md), not here.
 
+## [0.1.3] - 2026-11-05
+
+### Fixed
+
+- The plugin's setup offers the sign-in to the cards as soon as the setup is ready and
+  the human can see more than the agent (identifier or closed columns), not only once an
+  answer holds links: with names declared closed no answer ever did. `setup_status`
+  says it as `human_sees_more`.
+- The review names the people table in the form the declaration reads,
+  `entities: [{table: <table>, pk: <key>}]`: an agent wrote `key:` and the
+  declaration stopped loading until it noticed.
+- The `ambiguous_column` hint also names an alias that repeats a column's name
+  (`MIN(v.department) AS department`): the agent was told only to qualify columns.
+
 ## [0.1.2] - 2026-11-04
 
 ### Changed

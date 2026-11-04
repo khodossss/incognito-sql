@@ -40,7 +40,8 @@ def test_the_plugin_starts_this_release_s_project_server_in_both_clients() -> No
     assert "Never work around it" in skill  # a refusal is said, not bypassed
     assert "closed_hidden" in skill  # every class, named by who sees the value
     assert "protection profile" in skill
-    assert "offer the human" in skill  # the sign-in is offered, not left to be asked
+    assert "offer to sign them in" in skill  # the sign-in is offered, not left to be asked
+    assert "pk: <key>" in skill  # the people table in the form the declaration reads
 
 
 def test_write_lays_out_every_file(tmp_path: Path) -> None:

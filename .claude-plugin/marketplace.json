@@ -8,7 +8,7 @@
       "name": "incognito-sql",
       "source": "./plugin",
       "description": "Set up incognito-sql: the agent connects a database through an MCP server and queries it without receiving the personal data in it.",
-      "version": "0.1.2"
+      "version": "0.1.3"
     }
   ]
 }

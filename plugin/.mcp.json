@@ -4,7 +4,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "incognito-sql[mcp]==0.1.2",
+        "incognito-sql[mcp]==0.1.3",
         "incognito-sql",
         "project"
       ]

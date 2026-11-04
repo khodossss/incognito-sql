@@ -48,3 +48,9 @@ def test_the_readme_lists_every_reason_as_the_code_does() -> None:
     assert {r: (t, h) for r, t, h in rows} == {
         reason: (retry.value, hint) for reason, (retry, hint) in GUIDE.items()
     }
+
+
+def test_the_ambiguous_hint_names_an_alias_that_repeats_a_column() -> None:
+    # `MIN(v.department) AS department` is refused as ambiguous: the hint must say why.
+    hint = GUIDE[Reason.AMBIGUOUS_COLUMN.value][1]
+    assert "alias repeats" in hint

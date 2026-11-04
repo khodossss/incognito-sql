@@ -8,11 +8,12 @@ import json
 import webbrowser
 from collections.abc import Callable
 
+from incognito_sql.core.config import ColumnClass
 from incognito_sql.mcp.refusals import explained
 from incognito_sql.project import actions
 from incognito_sql.project.live import Live, NotReady
 from incognito_sql.project.place import Place
-from incognito_sql.project.words import FIX, READY, REVIEW, secret_step, start
+from incognito_sql.project.words import FIX, OFFER, READY, REVIEW, secret_step, start
 from incognito_sql.web.run import HOST
 
 
@@ -28,6 +29,10 @@ def _not_ready(problem: str) -> str:
             "hint": f"{problem}; call setup_status for the next step",
         }
     )
+
+
+# What the human sees on a card and the model does not.
+_HUMAN_ONLY = frozenset({ColumnClass.IDENTIFIER, ColumnClass.FREE_TEXT})
 
 
 class Tools:
@@ -67,6 +72,9 @@ class Tools:
         except NotReady as exc:
             return _json(info | {"ready": False, "problem": str(exc), "next": FIX})
         port = self._live.port()
+        columns = setup.decl.columns if setup.decl is not None else {}
+        kinds = {k for cols in columns.values() for k in cols.values()}
+        more = bool(kinds & _HUMAN_ONLY) and port is not None
         return _json(
             info
             | {
@@ -74,7 +82,8 @@ class Tools:
                 "cards": f"http://{HOST}:{port}/"
                 if port is not None
                 else "not served here: its port is held by another program",
-                "next": READY,
+                "human_sees_more": more,
+                "next": READY + OFFER if more else READY,
             }
         )
 

@@ -3,10 +3,11 @@
 from incognito_sql.setup.model import SCHEMES
 
 FIX = "Tell the human what the problem says; after it is fixed, call setup_status again."
-READY = (
-    "Use describe, then query. Identifier values come back as links. Once an answer holds "
-    "links, offer the human to see the real values: on their yes, call open_cards, which "
-    "signs them in on their own browser."
+READY = "Use describe, then query. Identifier values come back as links."
+OFFER = (
+    " The human can see values you cannot (identifier and closed columns) on the card "
+    "page: tell them so in this answer, and offer to sign them in; on their yes, call "
+    "open_cards, which signs them in on their own browser."
 )
 CLASSES = (
     "identifier: you get a token, the human sees the value on a card; open: both see the "
@@ -18,7 +19,8 @@ CLASSES = (
 REVIEW = (
     "Go through the draft with the human, table by table; candidates are columns that look "
     f"personal. Each column gets one class. {CLASSES} Ask, too, which table holds people "
-    "and its key, for `entities` (without it links lead to no person's card), and the "
+    "and its key, written `entities: [{table: <table>, pk: <key column>}]` (without it no "
+    "person has a card), and the "
     "protection profile: strict for health, finance or strict audit; balanced for a CRM, "
     "orders, analytics; permissive (the default) for own or test data. Write the classes, "
     "`entities` and `protection:` into the declaration as the human decides; then call "
