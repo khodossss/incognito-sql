@@ -25,7 +25,7 @@ def test_an_answered_query_shows_its_columns_and_output(
     assert code == 0
     assert "verdict: answered" in text
     assert "  people.full_name: identifier\n" in text
-    assert "  people.city: quasi\n" in text
+    assert "  people.city: open_quasi\n" in text
     assert "output columns: 1: pseudonym, 2: value" in text
 
 
@@ -47,7 +47,7 @@ def test_a_refusal_shows_its_code_retry_and_hint(
             "SELECT p.full_name FROM orders o JOIN people p ON o.person_id = p.id",
             ["orders.person_id: open", "people.full_name: identifier", "people.id: open"],
         ),
-        ("WITH x AS (SELECT city FROM people) SELECT city FROM x", ["people.city: quasi"]),
+        ("WITH x AS (SELECT city FROM people) SELECT city FROM x", ["people.city: open_quasi"]),
     ],
 )
 def test_base_columns_are_found_through_aliases_and_ctes(

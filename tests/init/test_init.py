@@ -26,7 +26,18 @@ def test_name_hints_verbatim() -> None:
     assert NAME_HINTS == (
         "name", "phone", "email", "mail", "nick", "passport", "address",
         "password", "ip", "city", "zip", "dob", "birth",
+        "diagnosis", "diagnose", "disease", "illness", "medical", "health", "symptom",
+        "treatment", "medication", "allergy", "religion", "ethnicity", "sexual",
     )  # fmt: skip
+
+
+def test_special_categories_are_suggested_closed() -> None:
+    from incognito_sql.init.hints import suggested_class  # noqa: PLC0415
+
+    assert suggested_class(name_hint("diagnosis")) == "closed"
+    assert suggested_class(name_hint("patient_religion")) == "closed"
+    assert suggested_class(name_hint("password_hash")) == "closed_hidden"
+    assert suggested_class(name_hint("city")) == "open_quasi"
 
 
 @pytest.mark.parametrize(

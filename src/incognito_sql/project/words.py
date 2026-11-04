@@ -4,14 +4,25 @@ from incognito_sql.setup.model import SCHEMES
 
 FIX = "Tell the human what the problem says; after it is fixed, call setup_status again."
 READY = (
-    "Use describe, then query. Identifier values come back as links; to show the human the "
-    "real values, call open_cards: it signs them in on their own browser."
+    "Use describe, then query. Identifier values come back as links. Once an answer holds "
+    "links, offer the human to see the real values: on their yes, call open_cards, which "
+    "signs them in on their own browser."
+)
+CLASSES = (
+    "identifier: you get a token, the human sees the value on a card; open: both see the "
+    "value; open_quasi: both see it, and it may identify a person in combination (city, "
+    "birth date, postcode); closed: you see nothing, the human sees it on a card (free text, "
+    "health and other special data); closed_hidden: nobody sees it (passwords, keys). A "
+    "column left out is hidden like closed_hidden."
 )
 REVIEW = (
-    "Go through the draft with the human, table by table: candidates are columns that look "
-    "personal. Each column becomes identifier (a token), quasi (shown, may identify in "
-    "combination), open (shown) or is removed (hidden). Edit the declaration file as the "
-    "human decides; then call setup_status. Never ask for or show a value."
+    "Go through the draft with the human, table by table; candidates are columns that look "
+    f"personal. Each column gets one class. {CLASSES} Ask, too, which table holds people "
+    "and its key, for `entities` (without it links lead to no person's card), and the "
+    "protection profile: strict for health, finance or strict audit; balanced for a CRM, "
+    "orders, analytics; permissive (the default) for own or test data. Write the classes, "
+    "`entities` and `protection:` into the declaration as the human decides; then call "
+    "setup_status. Never ask for or show a value."
 )
 
 STATUS_TEXT = (

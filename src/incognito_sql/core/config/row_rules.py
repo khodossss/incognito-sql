@@ -10,9 +10,9 @@ from sqlglot.errors import ParseError
 
 # A condition reads only what the model may see of its row: the pattern of hidden cells
 # shows where it holds.
-READABLE = frozenset({"open", "quasi"})
+READABLE = frozenset({"open", "open_quasi"})
 # A rule hides what the model would otherwise see; describe names those columns.
-HIDABLE = frozenset({"open", "quasi", "identifier"})
+HIDABLE = frozenset({"open", "open_quasi", "identifier"})
 _NODES = (
     exp.Column,
     exp.Identifier,

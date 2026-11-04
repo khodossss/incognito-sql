@@ -60,6 +60,7 @@ def test_the_demo_is_set_up_and_answered_without_a_restart(project: Path) -> Non
     status = _read(tools.status())
     assert status["ready"] is True
     assert status["dsn_found_in"] == dsn.PROJECT
+    assert status["protection"] == "permissive"  # shown, so the agent can name it
     sql = (
         "SELECT c.full_name, SUM(o.total) AS spent FROM customers c JOIN orders o "
         "ON o.customer_id = c.id GROUP BY c.id, c.full_name ORDER BY spent DESC LIMIT 1"

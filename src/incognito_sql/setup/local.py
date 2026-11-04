@@ -114,7 +114,8 @@ OWN = Case(
         Step(
             "columns",
             Who.AGENT,
-            "For each column of {config}, a class (identifier, quasi, free_text, secret, open), "
+            "For each column of {config}, a class (identifier, open, open_quasi, closed, "
+            "closed_hidden), "
             "and the tables whose rows are people: init's suggestion, confirmed or changed "
             "by the human, then written into {config}.",
             ask=Question(

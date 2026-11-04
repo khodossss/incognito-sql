@@ -8,6 +8,23 @@ All notable changes to incognito-sql are listed here. The format follows
 are when the stage was finished. Numbers from the benchmark are in
 [docs/benchmark.md](docs/benchmark.md), not here.
 
+## [0.1.2] - 2026-11-04
+
+### Changed
+
+- **Column classes are named by who sees the value**: `identifier` (the model a token,
+  you the value), `open` (both the value), `open_quasi` (was `quasi`: both the value, it
+  may identify in combination), `closed` (was `free_text`: the model nothing, you the
+  value on a card), `closed_hidden` (was `secret`: nobody). The old names are still read,
+  so declarations written for 0.1.0 and 0.1.1 keep working; `init`, the demo, `describe`,
+  `diff` and `try` speak the new ones.
+- `init` and the plugin's draft suggest `closed` for health and other special data
+  (diagnosis, disease, medication, religion and the like) instead of `open`.
+- The plugin's setup asks which table holds people (`entities`) and the protection
+  profile (strict for health or finance, balanced for a CRM, permissive for own or test
+  data), names every class with what it does, and offers the human to see the real
+  values once an answer holds links. `setup_status` shows the profile in force.
+
 ## [0.1.1] - 2026-11-04
 
 ### Added

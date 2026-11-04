@@ -87,7 +87,7 @@ def test_describe_shows_the_visible_window(gateway: Gateway) -> None:
                 "hidden_columns": 0,
             },
             "people": {
-                "columns": {"id": "open", "full_name": "identifier", "city": "quasi"},
+                "columns": {"id": "open", "full_name": "identifier", "city": "open_quasi"},
                 "hidden_columns": 2,
                 "person_key": "id",
             },

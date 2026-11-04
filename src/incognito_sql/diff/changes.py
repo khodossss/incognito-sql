@@ -15,7 +15,7 @@ UNLIMITED = "unlimited"  # a budget with no limit
 _HIDDEN = "hidden"  # a column the declaration does not list
 # What the model sees of a column: nothing, a token, the value; an open entity key also
 # names the rows of a person (`person_key`, the keys in labels).
-_SEEN = {_HIDDEN: 0, "secret": 0, "free_text": 0, "identifier": 1, "quasi": 2, "open": 2}
+_SEEN = {_HIDDEN: 0, "closed_hidden": 0, "closed": 0, "identifier": 1, "open_quasi": 2, "open": 2}
 _KEY = 3
 
 

@@ -38,7 +38,7 @@ GROUP BY c.full_name, c.city ORDER BY spent DESC
 The answer is right and the name never left the database: `full_name` is declared an
 identifier, so it comes back as a token the model can pass on, filter by
 (`WHERE full_name = 'tk_xpdi…'`) and show to you as a link. `city` is declared
-quasi-identifying and is shown; `total` is open. Opening the link shows you, signed in on
+`open_quasi` (identifying in combination) and is shown; `total` is open. Opening the link shows you, signed in on
 your own machine, the real name and the customer's rows.
 
 Asking for the value in another shape is refused before the query runs, not filtered
@@ -238,7 +238,7 @@ answer. A DBMS may evaluate an expression before the copy drops its rows, so a q
 reads a table with a `"*"` rule refuses any expression that can fail on some rows
 (arithmetic, a cast), wherever it stands and whichever table it reads (`hidden_rows`);
 `SUM` / `AVG` of a plain column still answer. The condition is one comparison over the
-table's own `open` and `quasi` columns (`=`, `<>`, `<`, `>`, `IN`, `BETWEEN`, `LIKE`,
+table's own `open` and `open_quasi` columns (`=`, `<>`, `<`, `>`, `IN`, `BETWEEN`, `LIKE`,
 `IS NULL`, `AND`, `OR`, `NOT`): which rows it names shows in the pattern of NULLs, so it
 may read nothing the model may not see. `describe` names the columns hidden in some rows,
 not the condition. A query is masked by the rules of the table it names. A database view
@@ -393,9 +393,9 @@ columns:
     id: open
     full_name: identifier
     email: identifier
-    city: quasi
-    notes: free_text
-    password_hash: secret
+    city: open_quasi
+    notes: closed
+    password_hash: closed_hidden
   orders:
     id: open
     customer_id: open
@@ -406,7 +406,7 @@ entities:
 ```
 
 Run `init` again: an existing file is left as is, and `init` lists contradictions (open
-columns whose name or sampled values look personal, quasi columns whose values do). Settle
+columns whose name or sampled values look personal, open_quasi columns whose values do). Settle
 each one: remove the column (hidden), or, if its values only look personal (order numbers,
 a shared support address), list it under `verified_open`.
 
@@ -464,9 +464,18 @@ browser's OS account can take it over; see [docs/deployment.md](docs/deployment.
 
 ## How it works
 
-1. **Declaration.** A YAML file says what each column is: `identifier`, `quasi` (city,
-   birth date, postcode: shown as is), `free_text` (hidden), `secret` (hidden everywhere,
-   including the cards) or `open`. A column the file does not list is hidden.
+1. **Declaration.** A YAML file gives each column a class, named by who sees the value:
+
+   | Class | The model | You, on a card |
+   |---|---|---|
+   | `identifier` | a token | the value |
+   | `open` | the value | the value |
+   | `open_quasi` (city, birth date, postcode) | the value; it may identify in combination | the value |
+   | `closed` (free text, health and other special data) | nothing | the value |
+   | `closed_hidden` (passwords, keys) | nothing | nothing |
+
+   A column the file does not list is hidden like `closed_hidden`. The names before
+   0.1.2 (`quasi`, `free_text`, `secret`) are still read.
 2. **Checked AST.** The query is parsed with sqlglot and checked against an allowlist of
    syntax nodes. A hidden column anywhere in the query is a refusal. An identifier column
    may only be selected, grouped, counted with `COUNT(DISTINCT ...)`, compared with `=` /
@@ -648,7 +657,7 @@ driver's message.
 | `dialect` | required | `postgres`, `sqlite`, `mysql`, `duckdb` or `tsql` |
 | `columns` | required | `table: {column: class}`; unlisted columns are hidden |
 | `entities` | required | list of `{table, pk}`: tables whose rows are people, and their key |
-| `verified_open` | `{}` | `table: [columns]`: open or quasi columns you checked; their values are not masked when selected as they are (an expression over them still is) |
+| `verified_open` | `{}` | `table: [columns]`: open or open_quasi columns you checked; their values are not masked when selected as they are (an expression over them still is) |
 | `token_ttl_s` | `86400` | token lifetime in seconds; `null` = tokens never expire |
 | `web_port` | `8765` | port of the cards on `127.0.0.1` |
 | `web_enabled` | `true` | `false` = labels mode, no cards |

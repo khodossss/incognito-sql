@@ -66,7 +66,7 @@ def test_describe_shows_the_visible_window(gateway: Gateway) -> None:
         "columns": {
             "id": "open",
             "full_name": "identifier",
-            "city": "quasi",
+            "city": "open_quasi",
             "phone": "identifier",
         },
         "hidden_columns": 2,
@@ -78,7 +78,7 @@ def test_describe_shows_the_visible_window(gateway: Gateway) -> None:
     assert {c.casefold(): v for c, v in shown["columns"].items()} == {
         "clientid": "open",
         "fullname": "identifier",
-        "town": "quasi",
+        "town": "open_quasi",
     }
     text = json.dumps(view).casefold()
     assert CANARY not in text

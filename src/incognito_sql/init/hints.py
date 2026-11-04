@@ -5,11 +5,15 @@ import re
 NAME_HINTS: tuple[str, ...] = (
     "name", "phone", "email", "mail", "nick", "passport", "address",
     "password", "ip", "city", "zip", "dob", "birth",
+    # Special categories: health, beliefs, sex life; closed until the human opens them.
+    "diagnosis", "diagnose", "disease", "illness", "medical", "health", "symptom",
+    "treatment", "medication", "allergy", "religion", "ethnicity", "sexual",
 )  # fmt: skip
 
 _CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 _NON_ALNUM = re.compile(r"[^A-Za-z0-9]+")
 _SECRET = frozenset({"password"})
+_SPECIAL = frozenset(NAME_HINTS[NAME_HINTS.index("diagnosis") :])
 _QUASI = frozenset({"city", "zip", "dob", "birth"})
 
 
@@ -31,5 +35,7 @@ def name_hint(column: str) -> str | None:
 def suggested_class(hint: str | None) -> str:
     """Return the class to suggest for a candidate; a hint-less candidate is an identifier."""
     if hint in _SECRET:
-        return "secret"
-    return "quasi" if hint in _QUASI else "identifier"
+        return "closed_hidden"
+    if hint in _SPECIAL:
+        return "closed"
+    return "open_quasi" if hint in _QUASI else "identifier"

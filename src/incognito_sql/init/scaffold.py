@@ -8,7 +8,9 @@ from incognito_sql.init.report import Samples, reason
 
 _HEADER = (
     "# Scaffold: nothing is visible until you uncomment a column line under its table\n"
-    "# and set its class (identifier, quasi, free_text, secret, open).\n"
+    "# and set its class: identifier (the model a token, you the value), open (both\n"
+    "# the value), open_quasi (both the value; may identify in combination), closed\n"
+    "# (the model nothing, you the value on a card), closed_hidden (nobody).\n"
     "# Lines marked PII? are guesses by name or by a local sample; you decide.\n"
 )
 _BREAKS = {"\u2028": "\\u2028", "\u2029": "\\u2029", "\x85": "\\x85"}

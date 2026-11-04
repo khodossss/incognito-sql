@@ -38,7 +38,7 @@ def test_proposals_follow_init_and_hold_no_value(scaffold: Path) -> None:
     )
     assert found[("people", "ref")].reason == "sample looks personal"
     assert found[("people", "id")] == Proposal("people", "id", "open", "")
-    assert found[("people", "city")].suggested == "quasi"
+    assert found[("people", "city")].suggested == "open_quasi"
     assert "zqcanary" not in repr(found).lower()
 
 
@@ -47,11 +47,13 @@ def test_decisions_become_the_declaration(scaffold: Path) -> None:
         ("people", "id"): "open",
         ("people", "full_name"): "identifier",
         ("people", "ref"): HIDDEN,
-        ("people", "city"): "quasi",
+        ("people", "city"): "open_quasi",
     }
     assert apply_classes(scaffold, classes, [("people", "id")]) is None
     decl = load_declaration(scaffold)
-    assert decl.columns == {"people": {"id": "open", "full_name": "identifier", "city": "quasi"}}
+    assert decl.columns == {
+        "people": {"id": "open", "full_name": "identifier", "city": "open_quasi"}
+    }
     assert decl.dsn_env == ENV
     before = scaffold.read_text("utf-8")
     assert apply_classes(scaffold, classes, [("people", "nope")]) is not None

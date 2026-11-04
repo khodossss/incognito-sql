@@ -43,11 +43,11 @@ def test_taking_the_suggestions_writes_them_and_the_people(config: Path) -> None
 
 
 def test_a_changed_column_and_a_hidden_one(config: Path) -> None:
-    # customers: change 2 to free_text and 3 to hidden; orders as suggested; no people
-    script = Script("n", "2-3", "free_text", "hidden", "y", "")
+    # customers: change 2 to closed and 3 to hidden; orders as suggested; no people
+    script = Script("n", "2-3", "closed", "hidden", "y", "")
     decide(config, script.terminal())
     decl = load_declaration(config)
-    assert decl.columns["customers"]["full_name"].value == "free_text"
+    assert decl.columns["customers"]["full_name"].value == "closed"
     assert "city" not in decl.columns["customers"]
     assert decl.entities == []
 

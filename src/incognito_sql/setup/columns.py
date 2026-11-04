@@ -13,6 +13,7 @@ from typing import Any
 import yaml
 
 from incognito_sql.core.config import load_declaration
+from incognito_sql.core.config.model import ALIASES
 from incognito_sql.problems import quiet_problem
 
 HIDDEN = "hidden"  # not listed: the model never sees it
@@ -47,7 +48,7 @@ def proposals(scaffold: Path) -> list[Proposal]:
             table = json.loads(match.group(1))
         elif table is not None and (match := _COLUMN.match(line)):
             name, cls, reason = json.loads(match.group(1)), match.group(2), match.group(3) or ""
-            found.append(Proposal(table, name, cls, reason.strip()))
+            found.append(Proposal(table, name, ALIASES.get(cls, cls), reason.strip()))
     return found
 
 

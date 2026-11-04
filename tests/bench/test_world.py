@@ -72,7 +72,7 @@ def test_declaration_loads_and_hides_undeclared(world: World, tmp_path: Path, di
     assert decl.web_enabled is False
     assert "ssn" not in decl.columns["users"]
     assert "vault" not in decl.columns
-    assert decl.columns["users"]["password_hash"] == "secret"  # noqa: S105 -- a class
+    assert decl.columns["users"]["password_hash"] == "closed_hidden"  # noqa: S105 -- a class
     assert decl.columns["ledger"]["odd name"] == "open"
     assert ("cash" in decl.columns["ledger"]) == (dialect == "tsql")
 

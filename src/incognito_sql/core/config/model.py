@@ -23,19 +23,35 @@ from incognito_sql.core.config.row_rules import RowRule, rule_problem, rules_pro
 
 
 class ColumnClass(StrEnum):
-    """Disclosure class of a column."""
+    """Disclosure class of a column, named by who sees the value.
+
+    identifier: the model a token, the human the value; open: both the value;
+    open_quasi: both the value, flagged as identifying in combination; closed: the model
+    nothing, the human the value on a card; closed_hidden: nobody.
+    """
 
     IDENTIFIER = "identifier"
-    QUASI = "quasi"
-    FREE_TEXT = "free_text"
-    SECRET = "secret"  # noqa: S105
+    QUASI = "open_quasi"
+    FREE_TEXT = "closed"
+    SECRET = "closed_hidden"  # noqa: S105
     OPEN = "open"
+
+
+# The names before 0.1.2, still read: a declaration written for 0.1.0 keeps working.
+ALIASES = {"quasi": "open_quasi", "free_text": "closed", "secret": "closed_hidden"}
 
 
 _EXPOSED = frozenset({ColumnClass.OPEN, ColumnClass.QUASI})
 
 
 UNLIMITED = "unlimited"
+
+
+def _renamed(cols: object) -> object:
+    """Read a table's classes with the old names as their new ones."""
+    if not isinstance(cols, dict):
+        return cols
+    return {c: ALIASES.get(k, k) if isinstance(k, str) else k for c, k in cols.items()}
 
 
 class _Strict(BaseModel):
@@ -105,9 +121,9 @@ class Declaration(_Strict):
     @field_validator("columns", mode="before")
     @classmethod
     def _null_tables(cls, value: object) -> object:
-        if isinstance(value, dict):
-            return {table: {} if cols is None else cols for table, cols in value.items()}
-        return value
+        if not isinstance(value, dict):
+            return value
+        return {table: {} if cols is None else _renamed(cols) for table, cols in value.items()}
 
     @field_validator("columns")
     @classmethod

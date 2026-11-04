@@ -25,7 +25,7 @@ with IS NULL. Hidden columns exist but cannot be named. A refusal is \
 this question); `hint` says why, the same for every refusal with that reason."""
 
 DESCRIBE_DESCRIPTION = """Name the DBMS (write SQL in its dialect) and list the tables \
-you can query: usable columns with their class (identifier, quasi, open) and the number \
+you can query: usable columns with their class (identifier, open, open_quasi) and the number \
 of hidden columns per table. Hidden columns are counted, never named, and any query that \
 mentions one is refused. `identifier_operations` lists what may be done with an \
 identifier column; a table lists its own for a column that differs. A table of people \

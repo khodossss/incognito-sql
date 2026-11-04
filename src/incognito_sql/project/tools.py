@@ -53,6 +53,7 @@ class Tools:
             "declaration": str(self._place.config) if self._place.config.exists() else None,
             "dsn_env": setup.decl.dsn_env if setup.decl is not None else None,
             "dsn_found_in": setup.found.source if setup.found is not None else None,
+            "protection": setup.decl.protection if setup.decl is not None else None,
         }
         if setup.decl is None and setup.problem is None:
             return _json(info | {"ready": False, "next": start(self._run)})

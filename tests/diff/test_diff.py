@@ -46,9 +46,9 @@ def test_classes_are_judged_by_what_the_model_sees(
     assert _report(capsys) == [
         "WIDENED customers.email: identifier -> open",
         "WIDENED customers.phone: hidden -> identifier",
-        "NARROWED customers.full_name: identifier -> secret",
-        "CHANGED customers.city: quasi -> open",
-        "CHANGED customers.notes: free_text -> hidden",
+        "NARROWED customers.full_name: identifier -> closed_hidden",
+        "CHANGED customers.city: open_quasi -> open",
+        "CHANGED customers.notes: closed -> hidden",
         "5 changes, 2 widened",
     ]
 

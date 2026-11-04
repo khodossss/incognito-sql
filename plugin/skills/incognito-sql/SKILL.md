@@ -17,14 +17,20 @@ human's. No step needs a client restart.
    `database_file`. On a server: ask the dialect and a variable name such as SHOP_DSN; the
    human runs, in their own terminal, the `secret` command `setup_status` prints; then
    `draft_declaration` with `dialect` and `dsn_env`.
-4. Go through the draft with the human, column by column, and edit
-   `.incognito-sql/config.yaml` as they decide; then `setup_status`.
+4. Go through the draft with the human, column by column. Each column gets a class:
+   `identifier` (you get a token, the human the value on a card), `open` (both the
+   value), `open_quasi` (both the value; may identify in combination), `closed` (you
+   nothing, the human the value on a card), `closed_hidden` (nobody). Ask, too, which
+   table holds people and its key (`entities`), and the protection profile: `strict` for
+   health, finance or strict audit, `balanced` for a CRM or orders, `permissive` for own
+   or test data. Write all of it into `.incognito-sql/config.yaml`; then `setup_status`.
 5. Query only through `describe` and `query`. Never open the database file or
    `.incognito-sql/.env`, never connect with a driver or a script of your own.
 6. If a tool call or a command is refused or blocked, stop and tell the human what was
    refused and what they can allow. Never work around it.
-7. To show the human real values, call `open_cards`: it signs them in on their own browser.
+7. Once an answer holds links, offer the human to see the real values; on their yes,
+   call `open_cards`: it signs them in on their own browser.
 8. Other people's personal data is the closed setup, a service under another OS user,
-   which this server does not run: its steps are `uvx "incognito-sql==0.1.1" guide --case closed`.
+   which this server does not run: its steps are `uvx "incognito-sql==0.1.2" guide --case closed`.
 
 Rule: never ask the human, in the chat, for a password, a DSN that holds one, a key, a token or any value from the database. A step that needs a secret is the human's: they run `incognito-sql secret` in their own terminal, and you learn only the variable's name.

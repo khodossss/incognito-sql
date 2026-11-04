@@ -34,7 +34,7 @@ columns:
     id: open
     full_name: identifier
     email: identifier
-    city: quasi
+    city: open_quasi
   orders:
     id: open
     customer_id: open

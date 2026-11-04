@@ -38,6 +38,9 @@ def test_the_plugin_starts_this_release_s_project_server_in_both_clients() -> No
     skill = made["plugin/skills/incognito-sql/SKILL.md"]
     assert "setup_status" in skill
     assert "Never work around it" in skill  # a refusal is said, not bypassed
+    assert "closed_hidden" in skill  # every class, named by who sees the value
+    assert "protection profile" in skill
+    assert "offer the human" in skill  # the sign-in is offered, not left to be asked
 
 
 def test_write_lays_out_every_file(tmp_path: Path) -> None:
