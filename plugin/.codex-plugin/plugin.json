@@ -1,6 +1,6 @@
 {
   "name": "incognito-sql",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Set up incognito-sql: the agent connects a database through an MCP server and queries it without receiving the personal data in it.",
   "author": {
     "name": "khodossss",
@@ -8,5 +8,6 @@
   },
   "repository": "https://github.com/khodossss/incognito-sql",
   "license": "Apache-2.0",
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
 }

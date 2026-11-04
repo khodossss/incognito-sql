@@ -26,6 +26,7 @@ from incognito_sql.init.run import add_init_parser, run_init
 from incognito_sql.mcp.token import TokenError, service_token
 from incognito_sql.parser import QuietParser
 from incognito_sql.problems import quiet_problem
+from incognito_sql.project.run import add_project_parser, run_project
 from incognito_sql.serving import (
     EXIT_FAILED,
     EXIT_USAGE,
@@ -83,6 +84,7 @@ _COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {  # the rest serve:
     "assess": _assess,
     "report": run_report,
     "audit": run_audit,
+    "project": lambda _a: run_project(),
 }
 _COMMANDS |= SETUP_COMMANDS
 
@@ -183,6 +185,7 @@ def _parser() -> argparse.ArgumentParser:
     add_assess_parser(commands)
     add_report_parser(commands)
     add_audit_parser(commands)
+    add_project_parser(commands)
     add_setup_parsers(commands)
     return parser
 

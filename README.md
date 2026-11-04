@@ -311,9 +311,9 @@ from the Start menu does not see a `$env:` variable set in a terminal window.
 
 ### Let your agent set it up
 
-First give your client's agent the skill that tells it where to begin, once per client;
-restart the client afterwards. In Claude Code and Codex it comes as a plugin from this
-repository:
+In Claude Code and Codex, install the plugin once per client; restart the client
+afterwards. It brings the server itself and a skill that tells the agent how to set it
+up, in every project:
 
 ```sh
 claude plugin marketplace add khodossss/incognito-sql
@@ -322,11 +322,20 @@ codex plugin marketplace add khodossss/incognito-sql
 codex plugin add incognito-sql@incognito-sql
 ```
 
-OpenCode takes the skill alone: `uvx incognito-sql==<version> skill opencode`
-(`skill claude-code` and `skill codex` do the same without a plugin).
+Then, in a project, ask the agent: "connect my database through incognito-sql", or "show
+me incognito-sql on the demo". It sets the project up through the server's tools
+(`setup_status`, `create_demo`, `draft_declaration`, `open_cards`), goes through the
+columns with you, and queries with `describe` and `query`; nothing needs a restart. The
+setup lives in the project's `.incognito-sql/` folder. A password is the one step that
+is yours: the agent prints the `secret` command and you run it in your own terminal.
 
-Then, in Claude Code, OpenCode or Codex, ask the agent to set up incognito-sql for your
-database. It runs `incognito-sql guide`, which prints the setup's steps for this version:
+OpenCode takes the skill alone: `uvx incognito-sql==<version> skill opencode`
+(`skill claude-code` and `skill codex` do the same without a plugin), and the setup
+below.
+
+Without the plugin (OpenCode, other people's data, or a client you set up by hand), ask
+the agent to set up incognito-sql. It runs `incognito-sql guide`, which prints the setup's
+steps for this version:
 the demo, your own database (`own`), other people's data (`closed`), several projects, or
 a change to a declaration in use. It asks you what each step needs and runs the commands
 that are its own; `--case <name>` prints one case, `--from <step>` goes on after a restart.

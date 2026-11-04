@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "incognito-sql": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "incognito-sql[mcp]==0.1.1",
+        "incognito-sql",
+        "project"
+      ]
+    }
+  }
+}

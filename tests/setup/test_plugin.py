@@ -4,8 +4,7 @@ import json
 from importlib.metadata import version
 from pathlib import Path
 
-from incognito_sql.setup.plugin import files, write
-from incognito_sql.setup.skill import text
+from incognito_sql.setup.plugin import files, plugin_text, write
 
 REPO = Path(__file__).parents[2]
 RELEASE = version("incognito-sql")
@@ -25,7 +24,20 @@ def test_both_clients_find_the_plugin_and_its_pinned_skill() -> None:
     assert claude["source"] == codex["source"]["path"] == "./plugin"
     assert json.loads(made["plugin/.claude-plugin/plugin.json"])["version"] == "9.9.9"
     assert json.loads(made["plugin/.codex-plugin/plugin.json"])["skills"] == "./skills/"
-    assert made["plugin/skills/incognito-sql/SKILL.md"] == text("9.9.9")
+    assert made["plugin/skills/incognito-sql/SKILL.md"] == plugin_text("9.9.9")
+
+
+def test_the_plugin_starts_this_release_s_project_server_in_both_clients() -> None:
+    made = files("9.9.9")
+    entry = json.loads(made["plugin/.mcp.json"])["mcpServers"]["incognito-sql"]
+    assert entry == {
+        "command": "uvx",
+        "args": ["--from", "incognito-sql[mcp]==9.9.9", "incognito-sql", "project"],
+    }
+    assert json.loads(made["plugin/.codex-plugin/plugin.json"])["mcpServers"] == "./.mcp.json"
+    skill = made["plugin/skills/incognito-sql/SKILL.md"]
+    assert "setup_status" in skill
+    assert "Never work around it" in skill  # a refusal is said, not bypassed
 
 
 def test_write_lays_out_every_file(tmp_path: Path) -> None:

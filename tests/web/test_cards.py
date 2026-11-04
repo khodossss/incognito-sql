@@ -66,6 +66,7 @@ def test_unknown_is_404_without_echo(client: TestClient, cookie: dict[str, str],
     assert response.status_code == 404
     assert "zz" not in response.text
     assert "999" not in response.text
+    assert "the setup that gave it" in response.text  # says why, not just "not found"
 
 
 @pytest.mark.parametrize("path", ["/p/people/Zzabc", "/p/orders/Ivan%20Petrov"])

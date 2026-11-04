@@ -26,8 +26,8 @@ INSERT INTO customers VALUES
 INSERT INTO orders VALUES
   (10, 1, 240.0), (11, 1, 80.5), (12, 2, 310.0), (13, 3, 45.0), (14, 4, 120.0), (15, 4, 9.9);
 """
-_DECLARATION = f"""# The demo shop: names and e-mails reach the model as tokens, cities as they are.
-dsn_env: {DSN_ENV}
+_DECLARATION = """# The demo shop: names and e-mails reach the model as tokens, cities as they are.
+dsn_env: {dsn_env}
 dialect: sqlite
 columns:
   customers:
@@ -45,6 +45,18 @@ entities:
 """
 
 
+def declaration(dsn_env: str = DSN_ENV) -> str:
+    """Return the demo's declaration, its DSN named by ``dsn_env``."""
+    return _DECLARATION.format(dsn_env=dsn_env)
+
+
+def write_shop(database: Path) -> None:
+    """Write the invented shop into the new SQLite file ``database``."""
+    with sqlite3.connect(database) as con:
+        con.executescript(_SCHEMA)
+    con.close()
+
+
 def add_demo_parser(commands: "argparse._SubParsersAction[argparse.ArgumentParser]") -> None:
     """Register the `demo` subcommand."""
     demo = commands.add_parser("demo", help="write an invented SQLite shop and its declaration")
@@ -60,10 +72,8 @@ def run_demo(folder: Path) -> int:
         return EXIT_FAILED
     try:
         folder.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(database) as con:
-            con.executescript(_SCHEMA)
-        con.close()
-        config.write_text(_DECLARATION, encoding="utf-8")
+        write_shop(database)
+        config.write_text(declaration(), encoding="utf-8")
     except (OSError, sqlite3.Error) as exc:  # their text repeats the path
         sys.stderr.write(f"incognito-sql: cannot write the demo folder: {type(exc).__name__}\n")
         return EXIT_FAILED

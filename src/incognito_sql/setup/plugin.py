@@ -1,10 +1,10 @@
-"""The incognito-sql plugin for Claude Code and Codex: the setup skill, installed once.
+"""The incognito-sql plugin for Claude Code and Codex: the project server and its skill.
 
 The repository is the plugins' marketplace: `.claude-plugin/marketplace.json` for Claude
 Code and `.agents/plugins/marketplace.json` for Codex point at `plugin/`, which holds
-both manifests and the skill of `incognito_sql.setup.skill`, pinned to this version.
-The plugin carries no MCP server: the server is set up per project (its database, its
-declaration), and the skill has the agent do that through `guide`.
+both manifests, the MCP entry `.mcp.json` and the skill of `incognito_sql.setup.skill`,
+all pinned to this version. The client starts `incognito-sql project` in every project:
+the server finds the project's own setup there, and its tools make it.
 
 ``python -m incognito_sql.setup.plugin`` rewrites the files for the installed version;
 a test holds them equal to what it writes.
@@ -15,7 +15,8 @@ import sys
 from importlib.metadata import version
 from pathlib import Path
 
-from incognito_sql.setup.skill import NAME, text
+from incognito_sql.setup.guide import RULE
+from incognito_sql.setup.skill import NAME
 
 DESCRIPTION = (
     "Set up incognito-sql: the agent connects a database through an MCP server and queries "
@@ -59,9 +60,59 @@ def files(release: str) -> dict[str, str]:
         ".claude-plugin/marketplace.json": _json(claude_market),
         ".agents/plugins/marketplace.json": _json(codex_market),
         f"{ROOT}/.claude-plugin/plugin.json": _json(plugin),
-        f"{ROOT}/.codex-plugin/plugin.json": _json({**plugin, "skills": "./skills/"}),
-        f"{ROOT}/skills/{NAME}/SKILL.md": text(release),
+        f"{ROOT}/.codex-plugin/plugin.json": _json(
+            {**plugin, "skills": "./skills/", "mcpServers": "./.mcp.json"}
+        ),
+        f"{ROOT}/.mcp.json": _json(server(release)),
+        f"{ROOT}/skills/{NAME}/SKILL.md": plugin_text(release),
     }
+
+
+def server(release: str) -> dict[str, object]:
+    """Return the MCP entry the client starts in every project: this release's server."""
+    command = {
+        "command": "uvx",
+        "args": ["--from", f"incognito-sql[mcp]=={release}", NAME, "project"],
+    }
+    return {"mcpServers": {NAME: command}}
+
+
+def plugin_text(version: str) -> str:
+    """Return the plugin's skill: the setup through the project server's tools."""
+    run = f'uvx "incognito-sql=={version}"'
+    return f"""---
+name: {NAME}
+description: Set up and use incognito-sql, the MCP server through which an agent queries a \
+database holding personal data without receiving the values. Use when the user asks to \
+connect a database through incognito-sql, to try its demo, to query such a database, to \
+hide personal data from the agent while it writes SQL, or to change what incognito-sql hides.
+---
+
+# incognito-sql in this project
+
+This plugin runs the incognito-sql server in every project. Its tools do the setup:
+`setup_status`, `create_demo`, `draft_declaration`, `open_cards`, then `describe` and
+`query`. Nothing is installed or run in a terminal, except the password, which is the
+human's. No step needs a client restart.
+
+1. Call `setup_status` first, and again after every step. It says what is set up and the
+   next step; follow it.
+2. The demo: `create_demo`, then `describe` and `query` (ask who spent the most).
+3. The human's database in a file (SQLite, DuckDB): `draft_declaration` with `dialect` and
+   `database_file`. On a server: ask the dialect and a variable name such as SHOP_DSN; the
+   human runs, in their own terminal, the `secret` command `setup_status` prints; then
+   `draft_declaration` with `dialect` and `dsn_env`.
+4. Go through the draft with the human, column by column, and edit
+   `.incognito-sql/config.yaml` as they decide; then `setup_status`.
+5. Query only through `describe` and `query`. Never open the database file or
+   `.incognito-sql/.env`, never connect with a driver or a script of your own.
+6. If a tool call or a command is refused or blocked, stop and tell the human what was
+   refused and what they can allow. Never work around it.
+7. To show the human real values, call `open_cards`: it signs them in on their own browser.
+8. Other people's personal data is the closed setup, a service under another OS user,
+   which this server does not run: its steps are `{run} guide --case closed`.
+
+{RULE}"""
 
 
 def _json(data: object) -> str:

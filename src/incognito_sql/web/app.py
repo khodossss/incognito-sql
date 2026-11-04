@@ -19,7 +19,12 @@ from incognito_sql.web.guard import NO_SESSION, Guard
 from incognito_sql.web.pages import index_page, masked_page, person_page, value_page
 from incognito_sql.web.session import LoginRefused, Sessions, cookie_name
 
-NOT_FOUND = "not found\n"
+NOT_FOUND = (
+    "not found: this card page holds no such card.\n"
+    "A link opens only on the card page of the setup that gave it (its project and its\n"
+    "database). Sign in there: open_cards in that project, or `incognito-sql login\n"
+    "--config <its declaration>`; a page still open for another setup holds the port.\n"
+)
 # Built by hand so the attributes are exactly these; no Secure: plain http on localhost.
 # Lax, not Strict: a link clicked in a web chat is a cross-site navigation.
 _COOKIE_ATTRS = "HttpOnly; SameSite=Lax; Path=/"

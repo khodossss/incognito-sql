@@ -23,10 +23,11 @@ EXIT_USAGE = 2
 _FILE_MODE = 0o600
 
 
-class _StepError(Exception):
+class StepError(Exception):
     """One safe line naming the failed step, and the exit code it ends with."""
 
     def __init__(self, message: str, code: int = EXIT_FAILED) -> None:
+        """Hold the line and the exit code."""
         super().__init__(message)
         self.code = code
 
@@ -35,17 +36,17 @@ def _dsn(dsn_env: str, env_file: Path | None) -> str:
     """Return the DSN the variable holds, the --env-file read first."""
     if not valid_variable(dsn_env):  # a DSN or a token, perhaps: never repeat it
         msg = "--dsn-env takes a variable's NAME in upper case (e.g. SHOP_DSN)"
-        raise _StepError(msg, EXIT_USAGE)
+        raise StepError(msg, EXIT_USAGE)
     if env_file is not None:
         try:
             load_env_file(env_file, os.environ)
         except EnvFileError:  # its message names the file as typed
             msg = "cannot read the --env-file"
-            raise _StepError(msg) from None
+            raise StepError(msg) from None
     dsn = os.environ.get(dsn_env)
     if not dsn:
         msg = "the variable named by --dsn-env is not set"
-        raise _StepError(msg, EXIT_USAGE)
+        raise StepError(msg, EXIT_USAGE)
     return dsn
 
 
@@ -95,7 +96,7 @@ def _report_missed(missed: int) -> None:
         sys.stdout.write(f"{missed} column{'' if missed == 1 else 's'} not sampled\n")
 
 
-def _inspect(
+def inspect_database(
     dsn: str, dialect: str, *, use_sample: bool
 ) -> tuple[Catalog, Samples | None, frozenset[tuple[str, str]]]:
     """Open the database, read the schema and optionally sample; failures name the step."""
@@ -113,7 +114,7 @@ def _inspect(
             engine.dispose()
     except Exception as exc:  # noqa: BLE001 -- driver text may quote the DSN
         msg = f"cannot {step} ({type(exc).__name__})"
-        raise _StepError(msg) from None
+        raise StepError(msg) from None
     return catalog, samples, missed
 
 
@@ -123,8 +124,8 @@ def run_init(
     """Run `init`; return the process exit code. Output never carries a sampled value."""
     try:
         dsn = _dsn(dsn_env, env_file)
-        catalog, samples, missed = _inspect(dsn, dialect, use_sample=use_sample)
-    except _StepError as exc:
+        catalog, samples, missed = inspect_database(dsn, dialect, use_sample=use_sample)
+    except StepError as exc:
         return _fail(str(exc), exc.code)
     if out.exists():
         return _existing(out, samples, len(missed))

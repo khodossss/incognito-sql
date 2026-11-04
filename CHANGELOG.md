@@ -8,6 +8,30 @@ All notable changes to incognito-sql are listed here. The format follows
 are when the stage was finished. Numbers from the benchmark are in
 [docs/benchmark.md](docs/benchmark.md), not here.
 
+## [0.1.1] - 2026-11-04
+
+### Added
+
+- **The plugin carries the server.** In Claude Code and Codex the plugin now starts
+  `incognito-sql project` in every project: nothing to run in a terminal, nothing to write
+  into the client's settings, no restart. Its tools do the setup: `setup_status` (what is
+  set up and the next step), `create_demo`, `draft_declaration` (from the database's
+  schema; a database file by its path, a server database by the variable the human set
+  with `secret`) and `open_cards` (signs the human in on their own browser; the link is
+  never returned to the agent), beside `describe` and `query`. A declaration written or
+  edited, or a DSN set, during the session is taken at once.
+- A project keeps its setup in `.incognito-sql/` (declaration, tokens, audit, and the
+  DSNs that are no secret), with a `.gitignore` that keeps it out of commits. Each
+  project gets its own cards port.
+
+### Changed
+
+- The plugin's skill walks the setup through these tools, and tells the agent to stop
+  and say what was refused when a command or a tool call is blocked, instead of working
+  around it.
+- A card link the page does not hold says why: it opens only on the card page of the
+  setup that gave it.
+
 ## [0.1.0] - 2026-11-04
 
 The first release. It holds everything since 0.0.3, which was never published: 0.0.4 and

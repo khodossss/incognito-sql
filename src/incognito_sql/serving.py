@@ -14,6 +14,8 @@ from incognito_sql.wiring import open_cards, open_gateway
 if TYPE_CHECKING:
     from mcp.server.mcpserver import MCPServer  # noqa: TID251 -- typing only, never at runtime
 
+    from incognito_sql.core.pipeline import Gateway
+
 EXIT_FAILED = 1
 EXIT_USAGE = 2
 
@@ -51,6 +53,22 @@ def cards_socket(decl: Declaration, *, required: bool) -> socket.socket | None:
     return sock
 
 
+def checked_gateway(config: Path, decl: Declaration, dsn: str, key: bytes) -> "Gateway":
+    """Open the gateway, refusing one whose open relations could show ruled rows unmasked."""
+    gateway = opened(lambda: open_gateway(config, decl, dsn, key))
+    readers = gateway.unruled_readers()
+    if readers:
+        gateway.close()
+        msg = (
+            f"{', '.join(readers)}: open, a view or without every row rule of its "
+            "partitions, child and parent tables, and may show rows of a table with row "
+            "rules unmasked; give a table the rules, or list it under verified_relations "
+            "once you have checked it shows no ruled row"
+        )
+        raise StartError(msg, EXIT_USAGE)
+    return gateway
+
+
 def serve(  # noqa: PLR0913, PLR0917
     config: Path,
     decl: Declaration,
@@ -72,17 +90,7 @@ def serve(  # noqa: PLR0913, PLR0917
     An open view, or an open partition, child or parent table without every row rule
     of its family, stops it.
     """
-    gateway = opened(lambda: open_gateway(config, decl, dsn, key))
-    readers = gateway.unruled_readers()
-    if readers:
-        gateway.close()
-        msg = (
-            f"{', '.join(readers)}: open, a view or without every row rule of its "
-            "partitions, child and parent tables, and may show rows of a table with row "
-            "rules unmasked; give a table the rules, or list it under verified_relations "
-            "once you have checked it shows no ruled row"
-        )
-        raise StartError(msg, EXIT_USAGE)
+    gateway = checked_gateway(config, decl, dsn, key)
     for line in protection_warnings(decl):
         sys.stderr.write(f"incognito-sql: {line}\n")
     web: LocalWeb | None = None
