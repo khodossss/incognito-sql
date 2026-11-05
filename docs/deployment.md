@@ -21,7 +21,7 @@ with: there the convenient profile is close to closed.
 
 This profile is about installation. What the model may do with an identifier column inside
 the server (`strict`, `balanced` or `permissive`) is the protection profile, set by
-`protection` in the config: see [Which profile to choose](../README.md#which-profile-to-choose).
+`protection` in the config: see [Which profile to choose](configuration.md#which-profile-to-choose).
 The two are chosen apart; for other people's personal data take the closed installation and,
 on purpose, `balanced` or `strict`.
 
@@ -202,6 +202,6 @@ directly; an agent with a shell can do the same.
   sandbox does, but it exists on macOS, Linux and WSL2 only, not on native Windows. Use
   these on top of the closed profile, not instead of it.
 - **The database login.** Give the service a read-only login limited to the declared
-  tables; see [the database login is the real guard](../README.md#the-database-login-is-the-real-guard).
+  tables; see [the database login is the real guard](threat-model.md#the-database-login-is-the-real-guard).
 - **Alerts.** Most databases can log logins: an alert on any login of the service's role
   from elsewhere shows a bypass attempt.

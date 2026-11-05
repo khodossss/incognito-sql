@@ -1,4 +1,4 @@
-"""Each refusal reason has a `retry` and a constant hint; the README lists them as the code does."""
+"""Each refusal reason has a `retry` and a constant hint; the docs list them as the code does."""
 
 import re
 from pathlib import Path
@@ -8,7 +8,7 @@ import pytest
 from incognito_sql.core.errors import Reason
 from incognito_sql.mcp.refusals import GUIDE, Retry, explained
 
-README = Path(__file__).parents[2] / "README.md"
+DOCS = Path(__file__).parents[2] / "docs" / "configuration.md"
 
 
 def test_every_reason_has_a_retry_and_a_hint() -> None:
@@ -41,8 +41,8 @@ def test_answers_and_unknown_errors_stay_as_they_are() -> None:
     assert explained(odd) is odd
 
 
-def test_the_readme_lists_every_reason_as_the_code_does() -> None:
-    section = README.read_text("utf-8").split("### Refusal codes", 1)[1]
+def test_the_docs_list_every_reason_as_the_code_does() -> None:
+    section = DOCS.read_text("utf-8").split("## Refusal codes", 1)[1]
     text = section.split("\n## ", 1)[0]
     rows = re.findall(r"^\| `([a-z_]+)` \| `([a-z_]+)` \| (.+) \|$", text, re.MULTILINE)
     assert {r: (t, h) for r, t, h in rows} == {

@@ -7,13 +7,14 @@ vulnerability, and we want to hear about it before anyone else does.
 
 - Any path by which a value of an identifier, secret, free-text or undeclared column
   reaches the model: an answer, an error, the tool listing, `describe`, timing beyond what
-  the README names, or anything else the model can read.
+  the threat model (`docs/threat-model.md`) names, or anything else the model can read.
 - A masked open cell whose value reaches the model.
 - The card web showing a value without a session, or to a host other than `127.0.0.1`.
 - A token store or audit log readable or writable by a user it was not created for.
 
-The limits listed under "What it does not protect against" in the README are known. A new
-way to exploit one of them more than the README says is in scope.
+The limits listed under "What it does not protect against" in
+[docs/threat-model.md](docs/threat-model.md) are known. A new
+way to exploit one of them more than it says is in scope.
 
 ## How to report
 
